@@ -52,6 +52,7 @@ struct GeminiErrorResponse {
 
 #[derive(Debug, Deserialize)]
 struct GeminiErrorDetail {
+    #[allow(dead_code)]
     code: i32,
     message: String,
     status: String,
@@ -62,10 +63,12 @@ struct GeminiErrorDetail {
 #[derive(Debug, Deserialize)]
 struct GeminiErrorDetailInfo {
     #[serde(rename = "@type")]
+    #[allow(dead_code)]
     error_type: String,
     #[serde(rename = "retryDelay")]
     retry_delay: Option<String>,
     quota_limit: Option<String>,
+    #[allow(dead_code)]
     quota_metro: Option<String>,
 }
 

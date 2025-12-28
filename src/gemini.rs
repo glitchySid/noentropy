@@ -16,7 +16,9 @@ pub struct GeminiClient {
     api_key: String,
     client: Client,
     base_url: String,
+    #[allow(dead_code)]
     model: String,
+    #[allow(dead_code)]
     timeout: Duration,
 }
 
@@ -68,10 +70,9 @@ impl GeminiClient {
     ) -> Result<OrganizationPlan, GeminiError> {
         let url = self.build_url();
 
-        if let (Some(cache), Some(base_path)) = (cache.as_ref(), base_path) {
-            if let Some(cached_response) = cache.get_cached_response(&filenames, base_path) {
+        if let (Some(cache), Some(base_path)) = (cache.as_ref(), base_path)
+            && let Some(cached_response) = cache.get_cached_response(&filenames, base_path) {
                 return Ok(cached_response);
-            }
         }
 
         let prompt = PromptBuilder::new(filenames.clone()).build_categorization_prompt();

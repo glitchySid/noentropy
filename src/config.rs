@@ -73,10 +73,9 @@ impl Config {
 }
 
 pub fn get_or_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
-    if let Ok(config) = Config::load() {
-        if !config.api_key.is_empty() {
+    if let Ok(config) = Config::load()
+        && !config.api_key.is_empty() {
             return Ok(config.api_key);
-        }
     }
 
     println!();
@@ -94,10 +93,9 @@ pub fn get_or_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
 }
 
 pub fn get_or_prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    if let Ok(config) = Config::load() {
-        if !config.download_folder.as_os_str().is_empty() && config.download_folder.exists() {
+    if let Ok(config) = Config::load()
+        && !config.download_folder.as_os_str().is_empty() && config.download_folder.exists() {
             return Ok(config.download_folder);
-        }
     }
 
     println!();

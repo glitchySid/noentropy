@@ -119,11 +119,10 @@ impl Prompter {
     }
 
     pub fn expand_home(path: &str) -> String {
-        if path.starts_with("~/") {
-            if let Some(base_dirs) = BaseDirs::new() {
+        if path.starts_with("~/")
+            && let Some(base_dirs) = BaseDirs::new() {
                 let home = base_dirs.home_dir();
                 return path.replacen("~", &home.to_string_lossy(), 1);
-            }
         }
         path.to_string()
     }

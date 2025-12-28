@@ -46,18 +46,16 @@ impl Cache {
     pub fn load_or_create(cache_path: &Path) -> Self {
         if cache_path.exists() {
             match fs::read_to_string(cache_path) {
-                Ok(content) => {
-                    match serde_json::from_str::<Cache>(&content) {
-                        Ok(cache) => {
-                            println!("Loaded cache with {} entries", cache.entries.len());
-                            cache
-                        }
-                        Err(_) => {
-                            println!("Cache corrupted, creating new cache");
-                            Self::new()
-                        }
+                Ok(content) => match serde_json::from_str::<Cache>(&content) {
+                    Ok(cache) => {
+                        println!("Loaded cache with {} entries", cache.entries.len());
+                        cache
                     }
-                }
+                    Err(_) => {
+                        println!("Cache corrupted, creating new cache");
+                        Self::new()
+                    }
+                },
                 Err(_) => {
                     println!("Failed to read cache, creating new cache");
                     Self::new()
@@ -73,13 +71,17 @@ impl Cache {
         if let Some(parent) = cache_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         let content = serde_json::to_string_pretty(self)?;
         fs::write(cache_path, content)?;
         Ok(())
     }
 
-    pub fn get_cached_response(&self, filenames: &[String], base_path: &Path) -> Option<OrganizationPlan> {
+    pub fn get_cached_response(
+        &self,
+        filenames: &[String],
+        base_path: &Path,
+    ) -> Option<OrganizationPlan> {
         let cache_key = self.generate_cache_key(filenames);
 
         if let Some(entry) = self.entries.get(&cache_key) {
@@ -163,10 +165,7 @@ impl Cache {
 
     fn get_file_metadata(file_path: &Path) -> Result<FileMetadata, Box<dyn std::error::Error>> {
         let metadata = fs::metadata(file_path)?;
-        let modified = metadata
-            .modified()?
-            .duration_since(UNIX_EPOCH)?
-            .as_secs();
+        let modified = metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs();
 
         Ok(FileMetadata {
             size: metadata.len(),
@@ -182,9 +181,8 @@ impl Cache {
 
         let initial_count = self.entries.len();
 
-        self.entries.retain(|_, entry| {
-            current_time - entry.timestamp < max_age_seconds
-        });
+        self.entries
+            .retain(|_, entry| current_time - entry.timestamp < max_age_seconds);
 
         let removed_count = initial_count - self.entries.len();
         if removed_count > 0 {

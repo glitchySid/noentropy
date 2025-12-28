@@ -65,7 +65,8 @@ fn test_read_file_sample_with_limit() {
     let file_path = temp_dir.path().join("test.txt");
 
     let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"Hello, World! This is a long text.").unwrap();
+    file.write_all(b"Hello, World! This is a long text.")
+        .unwrap();
 
     let content = read_file_sample(&file_path, 5);
     assert_eq!(content, Some("Hello".to_string()));
@@ -92,13 +93,11 @@ fn test_read_file_sample_nonexistent() {
 #[test]
 fn test_organization_plan_serialization() {
     let plan = OrganizationPlan {
-        files: vec![
-            FileCategory {
-                filename: "test.txt".to_string(),
-                category: "Documents".to_string(),
-                sub_category: "Text".to_string(),
-            },
-        ],
+        files: vec![FileCategory {
+            filename: "test.txt".to_string(),
+            category: "Documents".to_string(),
+            sub_category: "Text".to_string(),
+        }],
     };
 
     let json = serde_json::to_string(&plan).unwrap();

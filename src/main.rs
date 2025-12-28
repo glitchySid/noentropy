@@ -60,7 +60,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    println!("{}", "Gemini Plan received! Performing deep inspection...".green());
+    println!(
+        "{}",
+        "Gemini Plan received! Performing deep inspection...".green()
+    );
 
     let client = Arc::new(client);
     let semaphore = Arc::new(tokio::sync::Semaphore::new(args.max_concurrent));
@@ -81,7 +84,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let _permit = semaphore.acquire().await.unwrap();
                     if let Some(content) = noentropy::files::read_file_sample(&path, 5000) {
                         println!("Reading content of {}...", filename.green());
-                        client.get_ai_sub_category(&filename, &category, &content).await
+                        client
+                            .get_ai_sub_category(&filename, &category, &content)
+                            .await
                     } else {
                         String::new()
                     }
@@ -101,10 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", "Deep inspection complete! Moving Files.....".green());
 
     if args.dry_run {
-        println!(
-            "{} Dry run mode - skipping file moves.",
-            "INFO:".cyan()
-        );
+        println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
     } else {
         execute_move(&download_path, plan);
     }
@@ -119,62 +121,77 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn handle_gemini_error(error: GeminiError) {
     use colored::*;
-    
+
     match error {
         GeminiError::RateLimitExceeded { retry_after } => {
-            println!("{} API rate limit exceeded. Please wait {} seconds before trying again.", 
-                "ERROR:".red(), retry_after);
+            println!(
+                "{} API rate limit exceeded. Please wait {} seconds before trying again.",
+                "ERROR:".red(),
+                retry_after
+            );
         }
         GeminiError::QuotaExceeded { limit } => {
-            println!("{} Quota exceeded: {}. Please check your Gemini API usage.", 
-                "ERROR:".red(), limit);
+            println!(
+                "{} Quota exceeded: {}. Please check your Gemini API usage.",
+                "ERROR:".red(),
+                limit
+            );
         }
         GeminiError::ModelNotFound { model } => {
-            println!("{} Model '{}' not found. Please check the model name in the configuration.", 
-                "ERROR:".red(), model);
+            println!(
+                "{} Model '{}' not found. Please check the model name in the configuration.",
+                "ERROR:".red(),
+                model
+            );
         }
         GeminiError::InvalidApiKey => {
-            println!("{} Invalid API key. Please check your GEMINI_API_KEY environment variable.", 
-                "ERROR:".red());
+            println!(
+                "{} Invalid API key. Please check your GEMINI_API_KEY environment variable.",
+                "ERROR:".red()
+            );
         }
         GeminiError::ContentPolicyViolation { reason } => {
-            println!("{} Content policy violation: {}", 
-                "ERROR:".red(), reason);
+            println!("{} Content policy violation: {}", "ERROR:".red(), reason);
         }
         GeminiError::ServiceUnavailable { reason } => {
-            println!("{} Gemini service is temporarily unavailable: {}", 
-                "ERROR:".red(), reason);
+            println!(
+                "{} Gemini service is temporarily unavailable: {}",
+                "ERROR:".red(),
+                reason
+            );
         }
         GeminiError::NetworkError(e) => {
-            println!("{} Network error: {}", 
-                "ERROR:".red(), e);
+            println!("{} Network error: {}", "ERROR:".red(), e);
         }
         GeminiError::Timeout { seconds } => {
-            println!("{} Request timed out after {} seconds.", 
-                "ERROR:".red(), seconds);
+            println!(
+                "{} Request timed out after {} seconds.",
+                "ERROR:".red(),
+                seconds
+            );
         }
         GeminiError::InvalidRequest { details } => {
-            println!("{} Invalid request: {}", 
-                "ERROR:".red(), details);
+            println!("{} Invalid request: {}", "ERROR:".red(), details);
         }
         GeminiError::ApiError { status, message } => {
-            println!("{} API error (HTTP {}): {}", 
-                "ERROR:".red(), status, message);
+            println!(
+                "{} API error (HTTP {}): {}",
+                "ERROR:".red(),
+                status,
+                message
+            );
         }
         GeminiError::InvalidResponse(msg) => {
-            println!("{} Invalid response from Gemini: {}", 
-                "ERROR:".red(), msg);
+            println!("{} Invalid response from Gemini: {}", "ERROR:".red(), msg);
         }
         GeminiError::InternalError { details } => {
-            println!("{} Internal server error: {}", 
-                "ERROR:".red(), details);
+            println!("{} Internal server error: {}", "ERROR:".red(), details);
         }
         GeminiError::SerializationError(e) => {
-            println!("{} JSON serialization error: {}", 
-                "ERROR:".red(), e);
+            println!("{} JSON serialization error: {}", "ERROR:".red(), e);
         }
     }
-    
+
     println!("\n{} Check the following:", "HINT:".yellow());
     println!("  • Your GEMINI_API_KEY is correctly set");
     println!("  • Your internet connection is working");

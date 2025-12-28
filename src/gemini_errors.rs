@@ -93,24 +93,27 @@ impl GeminiError {
 
     fn from_gemini_error(error_detail: GeminiErrorDetail, status: u16) -> Self {
         let details = error_detail.details;
-        
+
         match error_detail.status.as_str() {
             "RESOURCE_EXHAUSTED" => {
                 if let Some(retry_info) = details.iter().find(|d| d.retry_delay.is_some())
                     && let Some(retry_delay) = &retry_info.retry_delay
-                        && let Ok(seconds) = retry_delay.parse::<u32>() {
-                            return GeminiError::RateLimitExceeded { retry_after: seconds };
-                        }
-                
-                if let Some(quota_info) = details.iter().find(|d| d.quota_limit.is_some()) {
-                    let limit = quota_info.quota_limit.as_deref().unwrap_or("unknown");
-                    return GeminiError::QuotaExceeded { 
-                        limit: limit.to_string() 
+                    && let Ok(seconds) = retry_delay.parse::<u32>()
+                {
+                    return GeminiError::RateLimitExceeded {
+                        retry_after: seconds,
                     };
                 }
-                
-                GeminiError::QuotaExceeded { 
-                    limit: "usage limit".to_string() 
+
+                if let Some(quota_info) = details.iter().find(|d| d.quota_limit.is_some()) {
+                    let limit = quota_info.quota_limit.as_deref().unwrap_or("unknown");
+                    return GeminiError::QuotaExceeded {
+                        limit: limit.to_string(),
+                    };
+                }
+
+                GeminiError::QuotaExceeded {
+                    limit: "usage limit".to_string(),
                 }
             }
             "NOT_FOUND" => {
@@ -118,69 +121,57 @@ impl GeminiError {
                 let model = extract_model_name(&error_detail.message);
                 GeminiError::ModelNotFound { model }
             }
-            "UNAUTHENTICATED" => {
-                GeminiError::InvalidApiKey
-            }
+            "UNAUTHENTICATED" => GeminiError::InvalidApiKey,
             "PERMISSION_DENIED" => {
                 if error_detail.message.to_lowercase().contains("policy") {
-                    GeminiError::ContentPolicyViolation { 
-                        reason: error_detail.message 
+                    GeminiError::ContentPolicyViolation {
+                        reason: error_detail.message,
                     }
                 } else {
-                    GeminiError::InvalidRequest { 
-                        details: error_detail.message 
+                    GeminiError::InvalidRequest {
+                        details: error_detail.message,
                     }
                 }
             }
-            "INVALID_ARGUMENT" => {
-                GeminiError::InvalidRequest { 
-                    details: error_detail.message 
-                }
-            }
-            "UNAVAILABLE" => {
-                GeminiError::ServiceUnavailable { 
-                    reason: error_detail.message 
-                }
-            }
-            "DEADLINE_EXCEEDED" => {
-                GeminiError::Timeout { seconds: 60 }
-            }
-            "INTERNAL" => {
-                GeminiError::InternalError { 
-                    details: error_detail.message 
-                }
-            }
-            _ => {
-                GeminiError::ApiError { 
-                    status, 
-                    message: error_detail.message 
-                }
-            }
+            "INVALID_ARGUMENT" => GeminiError::InvalidRequest {
+                details: error_detail.message,
+            },
+            "UNAVAILABLE" => GeminiError::ServiceUnavailable {
+                reason: error_detail.message,
+            },
+            "DEADLINE_EXCEEDED" => GeminiError::Timeout { seconds: 60 },
+            "INTERNAL" => GeminiError::InternalError {
+                details: error_detail.message,
+            },
+            _ => GeminiError::ApiError {
+                status,
+                message: error_detail.message,
+            },
         }
     }
 
     fn from_status_code(status: reqwest::StatusCode, error_text: &str) -> Self {
         match status.as_u16() {
-            400 => GeminiError::InvalidRequest { 
-                details: error_text.to_string() 
+            400 => GeminiError::InvalidRequest {
+                details: error_text.to_string(),
             },
             401 => GeminiError::InvalidApiKey,
-            403 => GeminiError::ContentPolicyViolation { 
-                reason: error_text.to_string() 
+            403 => GeminiError::ContentPolicyViolation {
+                reason: error_text.to_string(),
             },
-            404 => GeminiError::ModelNotFound { 
-                model: "unknown".to_string() 
+            404 => GeminiError::ModelNotFound {
+                model: "unknown".to_string(),
             },
             429 => GeminiError::RateLimitExceeded { retry_after: 60 },
-            500 => GeminiError::InternalError { 
-                details: error_text.to_string() 
+            500 => GeminiError::InternalError {
+                details: error_text.to_string(),
             },
-            502..=504 => GeminiError::ServiceUnavailable { 
-                reason: error_text.to_string() 
+            502..=504 => GeminiError::ServiceUnavailable {
+                reason: error_text.to_string(),
             },
-            _ => GeminiError::ApiError { 
-                status: status.as_u16(), 
-                message: error_text.to_string() 
+            _ => GeminiError::ApiError {
+                status: status.as_u16(),
+                message: error_text.to_string(),
             },
         }
     }
@@ -216,8 +207,9 @@ fn extract_model_name(message: &str) -> String {
     // Try to extract model name from error message
     // Example: "Model 'gemini-1.5-flash' not found"
     if let Some(start) = message.find('\'')
-        && let Some(end) = message[start + 1..].find('\'') {
-            return message[start + 1..start + 1 + end].to_string();
-        }
+        && let Some(end) = message[start + 1..].find('\'')
+    {
+        return message[start + 1..start + 1 + end].to_string();
+    }
     "unknown".to_string()
 }

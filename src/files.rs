@@ -39,10 +39,11 @@ impl FileBatch {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file()
-                && let Ok(relative_path) = path.strip_prefix(&root_path) {
-                    filenames.push(relative_path.to_string_lossy().into_owned());
-                    paths.push(path);
-                }
+                && let Ok(relative_path) = path.strip_prefix(&root_path)
+            {
+                filenames.push(relative_path.to_string_lossy().into_owned());
+                paths.push(path);
+            }
         }
 
         FileBatch { filenames, paths }
@@ -91,10 +92,7 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
     eprint!("\nDo you want to apply these changes? [y/N]: ");
 
     let mut input = String::new();
-    if io::stdin()
-        .read_line(&mut input)
-        .is_err()
-    {
+    if io::stdin().read_line(&mut input).is_err() {
         eprintln!("\n{}", "Failed to read input. Operation cancelled.".red());
         return;
     }
@@ -144,11 +142,7 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
                 match move_file_cross_platform(&source, &target) {
                     Ok(_) => {
                         if item.sub_category.is_empty() {
-                            println!(
-                                "Moved: {} -> {}/",
-                                item.filename,
-                                item.category.green()
-                            );
+                            println!("Moved: {} -> {}/", item.filename, item.category.green());
                         } else {
                             println!(
                                 "Moved: {} -> {}/{}",
@@ -187,52 +181,19 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
         moved_count.to_string().green(),
         error_count.to_string().red()
     );
-} pub fn is_text_file(path: &Path) -> bool {
+}
+pub fn is_text_file(path: &Path) -> bool {
     let text_extensions = [
-        "txt",
-        "md",
-        "rs",
-        "py",
-        "js",
-        "ts",
-        "jsx",
-        "tsx",
-        "html",
-        "css",
-        "json",
-        "xml",
-        "csv",
-        "yaml",
-        "yml",
-        "toml",
-        "ini",
-        "cfg",
-        "conf",
-        "log",
-        "sh",
-        "bat",
-        "ps1",
-        "sql",
-        "c",
-        "cpp",
-        "h",
-        "hpp",
-        "java",
-        "go",
-        "rb",
-        "php",
-        "swift",
-        "kt",
-        "scala",
-        "lua",
-        "r",
-        "m",
+        "txt", "md", "rs", "py", "js", "ts", "jsx", "tsx", "html", "css", "json", "xml", "csv",
+        "yaml", "yml", "toml", "ini", "cfg", "conf", "log", "sh", "bat", "ps1", "sql", "c", "cpp",
+        "h", "hpp", "java", "go", "rb", "php", "swift", "kt", "scala", "lua", "r", "m",
     ];
 
     if let Some(ext) = path.extension()
-        && let Some(ext_str) = ext.to_str() {
-            return text_extensions.contains(&ext_str.to_lowercase().as_str());
-        }
+        && let Some(ext_str) = ext.to_str()
+    {
+        return text_extensions.contains(&ext_str.to_lowercase().as_str());
+    }
     false
 }
 

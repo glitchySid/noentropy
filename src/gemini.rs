@@ -1,8 +1,8 @@
 use crate::cache::Cache;
+use crate::files::OrganizationPlan;
 use crate::gemini_errors::GeminiError;
 use crate::gemini_helpers::PromptBuilder;
 use crate::gemini_types::{GeminiResponse, OrganizationPlanResponse};
-use crate::files::OrganizationPlan;
 use reqwest::Client;
 use serde_json::json;
 use std::path::Path;
@@ -71,8 +71,9 @@ impl GeminiClient {
         let url = self.build_url();
 
         if let (Some(cache), Some(base_path)) = (cache.as_ref(), base_path)
-            && let Some(cached_response) = cache.get_cached_response(&filenames, base_path) {
-                return Ok(cached_response);
+            && let Some(cached_response) = cache.get_cached_response(&filenames, base_path)
+        {
+            return Ok(cached_response);
         }
 
         let prompt = PromptBuilder::new(filenames.clone()).build_categorization_prompt();
@@ -107,8 +108,8 @@ impl GeminiClient {
             return Err(GeminiError::from_response(res).await);
         }
 
-        let gemini_response: GeminiResponse = res.json().await
-            .map_err(GeminiError::NetworkError)?;
+        let gemini_response: GeminiResponse =
+            res.json().await.map_err(GeminiError::NetworkError)?;
 
         let raw_text = self.extract_text_from_response(&gemini_response)?;
         let plan_response: OrganizationPlanResponse = serde_json::from_str(&raw_text)?;
@@ -116,10 +117,7 @@ impl GeminiClient {
         Ok(plan_response.to_organization_plan())
     }
 
-    fn extract_text_from_response(
-        &self,
-        response: &GeminiResponse,
-    ) -> Result<String, GeminiError> {
+    fn extract_text_from_response(&self, response: &GeminiResponse) -> Result<String, GeminiError> {
         response
             .candidates
             .first()
@@ -244,7 +242,11 @@ impl GeminiClient {
         self.extract_subcategory_from_response(&gemini_response, filename)
     }
 
-    fn extract_subcategory_from_response(&self, response: &GeminiResponse, _filename: &str) -> String {
+    fn extract_subcategory_from_response(
+        &self,
+        response: &GeminiResponse,
+        _filename: &str,
+    ) -> String {
         match self.extract_text_from_response(response) {
             Ok(text) => {
                 let sub_category = text.trim();

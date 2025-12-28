@@ -10,7 +10,10 @@ pub struct Prompter;
 impl Prompter {
     pub fn prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
         println!();
-        println!("Get your API key at: {}", "https://ai.google.dev/".cyan().underline());
+        println!(
+            "Get your API key at: {}",
+            "https://ai.google.dev/".cyan().underline()
+        );
         println!("Enter your API Key (starts with 'AIza'):");
 
         let mut attempts = 0;
@@ -29,7 +32,10 @@ impl Prompter {
             }
 
             attempts += 1;
-            Self::print_validation_error("Invalid API key format. Must start with 'AIza' and be around 39 characters.", attempts);
+            Self::print_validation_error(
+                "Invalid API key format. Must start with 'AIza' and be around 39 characters.",
+                attempts,
+            );
         }
 
         Err("Max retries exceeded. Please run again with a valid API key.".into())
@@ -102,10 +108,7 @@ impl Prompter {
     }
 
     pub fn validate_api_key(key: &str) -> bool {
-        !key.is_empty()
-            && key.starts_with("AIza")
-            && key.len() >= 35
-            && key.len() <= 50
+        !key.is_empty() && key.starts_with("AIza") && key.len() >= 35 && key.len() <= 50
     }
 
     pub fn validate_folder_path(path: &Path) -> bool {
@@ -120,9 +123,10 @@ impl Prompter {
 
     pub fn expand_home(path: &str) -> String {
         if path.starts_with("~/")
-            && let Some(base_dirs) = BaseDirs::new() {
-                let home = base_dirs.home_dir();
-                return path.replacen("~", &home.to_string_lossy(), 1);
+            && let Some(base_dirs) = BaseDirs::new()
+        {
+            let home = base_dirs.home_dir();
+            return path.replacen("~", &home.to_string_lossy(), 1);
         }
         path.to_string()
     }

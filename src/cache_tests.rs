@@ -76,7 +76,8 @@ fn test_cache_response_file_changed() {
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"modified content longer than original").unwrap();
+    file.write_all(b"modified content longer than original")
+        .unwrap();
 
     let cached = cache.get_cached_response(&filenames, base_path);
     assert!(cached.is_none());

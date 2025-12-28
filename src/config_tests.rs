@@ -18,30 +18,42 @@ fn test_config_serialization() {
 
 #[test]
 fn test_validate_api_key_valid() {
-    assert!(crate::prompt::Prompter::validate_api_key("AIzaSyB1234567890123456789012345678"));
-    assert!(crate::prompt::Prompter::validate_api_key("AIzaSyB123456789012345678901234567890"));
+    assert!(crate::prompt::Prompter::validate_api_key(
+        "AIzaSyB1234567890123456789012345678"
+    ));
+    assert!(crate::prompt::Prompter::validate_api_key(
+        "AIzaSyB123456789012345678901234567890"
+    ));
 }
 
 #[test]
 fn test_validate_api_key_invalid() {
     assert!(!crate::prompt::Prompter::validate_api_key(""));
     assert!(!crate::prompt::Prompter::validate_api_key("invalid_key"));
-    assert!(!crate::prompt::Prompter::validate_api_key("BizaSyB1234567890123456789012345678"));
+    assert!(!crate::prompt::Prompter::validate_api_key(
+        "BizaSyB1234567890123456789012345678"
+    ));
     assert!(!crate::prompt::Prompter::validate_api_key("short"));
 }
 
 #[test]
 fn test_validate_folder_path_valid() {
     let temp_dir = tempfile::tempdir().unwrap();
-    assert!(crate::prompt::Prompter::validate_folder_path(temp_dir.path()));
+    assert!(crate::prompt::Prompter::validate_folder_path(
+        temp_dir.path()
+    ));
 }
 
 #[test]
 fn test_validate_folder_path_invalid() {
-    assert!(!crate::prompt::Prompter::validate_folder_path(Path::new("/nonexistent/path/that/does/not/exist")));
+    assert!(!crate::prompt::Prompter::validate_folder_path(Path::new(
+        "/nonexistent/path/that/does/not/exist"
+    )));
 
     let temp_file = tempfile::NamedTempFile::new().unwrap();
-    assert!(!crate::prompt::Prompter::validate_folder_path(temp_file.path()));
+    assert!(!crate::prompt::Prompter::validate_folder_path(
+        temp_file.path()
+    ));
 }
 
 #[test]

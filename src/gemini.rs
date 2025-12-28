@@ -1,18 +1,55 @@
-use crate::files::OrganizationPlan;
+use crate::cache::Cache;
+use crate::files::{FileCategory, OrganizationPlan};
+use crate::gemini_errors::GeminiError;
 use reqwest::Client;
+use serde::Deserialize;
 use serde_json::json;
+use std::path::Path;
+use std::time::Duration;
+
+#[derive(Deserialize, Default)]
+struct GeminiResponse {
+    candidates: Vec<Candidate>,
+}
+
+#[derive(Deserialize)]
+struct Candidate {
+    content: Content,
+}
+
+#[derive(Deserialize)]
+struct Content {
+    parts: Vec<Part>,
+}
+
+#[derive(Deserialize)]
+struct Part {
+    text: String,
+}
+
+#[derive(Deserialize)]
+struct FileCategoryResponse {
+    filename: String,
+    category: String,
+}
+
+#[derive(Deserialize)]
+struct OrganizationPlanResponse {
+    files: Vec<FileCategoryResponse>,
+}
 
 pub struct GeminiClient {
     api_key: String,
     client: Client,
     base_url: String,
 }
+
 impl GeminiClient {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
             client: Client::new(),
-            base_url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent".to_string(),
+            base_url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent".to_string(),
         }
     }
 
@@ -20,8 +57,25 @@ impl GeminiClient {
     pub async fn organize_files(
         &self,
         filenames: Vec<String>,
-    ) -> Result<OrganizationPlan, Box<dyn std::error::Error>> {
+    ) -> Result<OrganizationPlan, GeminiError> {
+        self.organize_files_with_cache(filenames, None, None).await
+    }
+
+    /// Takes a list of filenames and asks Gemini to categorize them with caching support
+    pub async fn organize_files_with_cache(
+        &self,
+        filenames: Vec<String>,
+        mut cache: Option<&mut Cache>,
+        base_path: Option<&Path>,
+    ) -> Result<OrganizationPlan, GeminiError> {
         let url = format!("{}?key={}", self.base_url, self.api_key);
+
+        // Check cache first if available
+        if let (Some(cache_ref), Some(base_path)) = (cache.as_ref(), base_path) {
+            if let Some(cached_response) = cache_ref.get_cached_response(&filenames, base_path) {
+                return Ok(cached_response);
+            }
+        }
 
         // 1. Construct the Prompt
         let file_list_str = filenames.join(", ");
@@ -42,24 +96,134 @@ impl GeminiClient {
             }
         });
 
-        // 3. Send
-        let res = self.client.post(&url).json(&request_body).send().await?;
+        // 3. Send with retry logic
+        let res = self.send_request_with_retry(&url, &request_body).await?;
 
         // 4. Parse
         if res.status().is_success() {
-            let resp_json: serde_json::Value = res.json().await?;
+            let gemini_response: GeminiResponse = res.json().await.map_err(GeminiError::NetworkError)?;
 
-            // Extract the raw JSON string from Gemini
-            let raw_text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
-                .as_str()
-                .ok_or("Failed to get text from Gemini")?;
+            // Extract raw JSON string from Gemini using proper structs
+            let raw_text = &gemini_response.candidates
+                .get(0)
+                .ok_or_else(|| GeminiError::InvalidResponse("No candidates in response".to_string()))?
+                .content.parts
+                .get(0)
+                .ok_or_else(|| GeminiError::InvalidResponse("No parts in content".to_string()))?
+                .text;
 
-            // Deserialize into our Rust Struct
-            let plan: OrganizationPlan = serde_json::from_str(raw_text)?;
+            // Deserialize into our temporary response struct
+            let plan_response: OrganizationPlanResponse = serde_json::from_str(raw_text)?;
+
+            // Manually map to the final OrganizationPlan
+            let plan = OrganizationPlan {
+                files: plan_response
+                    .files
+                    .into_iter()
+                    .map(|f| FileCategory {
+                        filename: f.filename,
+                        category: f.category,
+                        sub_category: String::new(), // Initialize with empty sub_category
+                    })
+                    .collect(),
+            };
+
+            // Cache the response if cache is available
+            if let (Some(cache), Some(base_path)) = (cache.as_mut(), base_path) {
+                cache.cache_response(&filenames, plan.clone(), base_path);
+            }
+
             Ok(plan)
         } else {
-            let err = res.text().await?;
-            Err(format!("API Error: {}", err).into())
+            Err(GeminiError::from_response(res).await)
+        }
+    }
+
+    /// Send request with retry logic for retryable errors
+    async fn send_request_with_retry(
+        &self,
+        url: &str,
+        request_body: &serde_json::Value,
+    ) -> Result<reqwest::Response, GeminiError> {
+        let mut attempts = 0;
+        let max_attempts = 3;
+
+        loop {
+            attempts += 1;
+
+            match self.client.post(url).json(request_body).send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        return Ok(response);
+                    }
+
+                    let error = GeminiError::from_response(response).await;
+                    
+                    if error.is_retryable() && attempts < max_attempts {
+                        if let Some(delay) = error.retry_delay() {
+                            println!("API Error: {}. Retrying in {} seconds (attempt {}/{})", 
+                                error, delay.as_secs(), attempts, max_attempts);
+                            tokio::time::sleep(delay).await;
+                            continue;
+                        }
+                    }
+                    
+                    return Err(error);
+                }
+                Err(e) => {
+                    if attempts < max_attempts {
+                        println!("Network error: {}. Retrying in {} seconds (attempt {}/{})", 
+                            e, 5, attempts, max_attempts);
+                        tokio::time::sleep(Duration::from_secs(5)).await;
+                        continue;
+                    }
+                    return Err(GeminiError::NetworkError(e));
+                }
+            }
+        }
+    }
+
+    pub async fn get_ai_sub_category(
+        &self,
+        filename: &str,
+        parent_category: &str,
+        content: &str,
+    ) -> String {
+        let url = format!("{}?key={}", self.base_url, self.api_key);
+
+        let prompt = format!(
+            "I have a file named '{}' inside the '{}' folder. Here is the first 1000 characters of the content:\n---\n{}\n---\nBased on this, suggest a single short sub-folder name (e.g., 'Invoices', 'Notes', 'Config'). Return ONLY the name of the sub-folder. Do not use markdown or explanations.",
+            filename, parent_category, content
+        );
+
+        let request_body = json!({
+            "contents": [{
+                "parts": [{ "text": prompt }]
+            }]
+        });
+
+        let res = self.client.post(&url).json(&request_body).send().await;
+
+        if let Ok(res) = res {
+            if res.status().is_success() {
+                let gemini_response: GeminiResponse = res.json().await.unwrap_or_default();
+                let sub_category = gemini_response.candidates
+                    .get(0)
+                    .and_then(|c| c.content.parts.get(0))
+                    .map(|p| p.text.trim())
+                    .unwrap_or("General")
+                    .to_string();
+
+                if sub_category.is_empty() {
+                    "General".to_string()
+                } else {
+                    sub_category
+                }
+            } else {
+                "General".to_string()
+            }
+        } else {
+            "General".to_string()
         }
     }
 }

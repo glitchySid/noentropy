@@ -2,7 +2,6 @@ use colored::*;
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::{ffi::OsStr, fs, path::Path, path::PathBuf};
-use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileCategory {
@@ -25,28 +24,54 @@ impl FileBatch {
     pub fn from_path(root_path: PathBuf) -> Self {
         let mut filenames = Vec::new();
         let mut paths = Vec::new();
-        for entry in WalkDir::new(&root_path)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.path().is_file())
-        {
-            if let Ok(relative_path) = entry.path().strip_prefix(&root_path) {
-                filenames.push(relative_path.to_string_lossy().into_owned());
-                paths.push(entry.path().to_path_buf());
+
+        let entries = match fs::read_dir(&root_path) {
+            Ok(entries) => entries,
+            Err(e) => {
+                eprintln!("Error reading directory {:?}: {}", root_path, e);
+                return FileBatch {
+                    filenames: Vec::new(),
+                    paths: Vec::new(),
+                };
             }
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file()
+                && let Ok(relative_path) = path.strip_prefix(&root_path) {
+                    filenames.push(relative_path.to_string_lossy().into_owned());
+                    paths.push(path);
+                }
         }
+
         FileBatch { filenames, paths }
     }
+
     /// Helper to get the number of files found
     pub fn count(&self) -> usize {
         self.filenames.len()
     }
 }
 
+/// Move a file with cross-platform compatibility
+/// Tries rename first (fastest), falls back to copy+delete if needed (e.g., cross-filesystem on Windows)
+fn move_file_cross_platform(source: &Path, target: &Path) -> io::Result<()> {
+    match fs::rename(source, target) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            if cfg!(windows) || e.kind() == io::ErrorKind::CrossesDevices {
+                fs::copy(source, target)?;
+                fs::remove_file(source)?;
+                Ok(())
+            } else {
+                Err(e)
+            }
+        }
+    }
+}
+
 pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
-    // ---------------------------------------------------------
-    // PHASE 1: PREVIEW (Show the plan)
-    // ---------------------------------------------------------
     println!("\n{}", "--- EXECUTION PLAN ---".bold().underline());
 
     if plan.files.is_empty() {
@@ -54,7 +79,6 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
         return;
     }
 
-    // Iterate by reference (&) so we don't consume the data yet
     for item in &plan.files {
         let mut target_display = format!("{}", item.category.green());
         if !item.sub_category.is_empty() {
@@ -64,9 +88,6 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
         println!("Plan: {} -> {}/", item.filename, target_display);
     }
 
-    // ---------------------------------------------------------
-    // PHASE 2: PROMPT (Ask for permission)
-    // ---------------------------------------------------------
     eprint!("\nDo you want to apply these changes? [y/N]: ");
 
     let mut input = String::new();
@@ -74,27 +95,25 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
         .read_line(&mut input)
         .is_err()
     {
-        println!("\n{}", "Failed to read input. Operation cancelled.".red());
+        eprintln!("\n{}", "Failed to read input. Operation cancelled.".red());
         return;
     }
 
     let input = input.trim().to_lowercase();
 
-    // If input is not "y" or "yes", abort.
     if input != "y" && input != "yes" {
         println!("\n{}", "Operation cancelled.".red());
         return;
     }
 
-    // ---------------------------------------------------------
-    // PHASE 3: EXECUTION (Actually move files)
-    // ---------------------------------------------------------
     println!("\n{}", "--- MOVING FILES ---".bold().underline());
+
+    let mut moved_count = 0;
+    let mut error_count = 0;
 
     for item in plan.files {
         let source = base_path.join(&item.filename);
 
-        // Logic: Destination / Parent Category / Sub Category
         let mut final_path = base_path.join(&item.category);
 
         if !item.sub_category.is_empty() {
@@ -109,57 +128,111 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan) {
 
         let target = final_path.join(&file_name);
 
-        // 1. Create the category/sub-category folder
-        // (Only need to call this once per file path)
         if let Err(e) = fs::create_dir_all(&final_path) {
-            println!(
+            eprintln!(
                 "{} Failed to create dir {:?}: {}",
                 "ERROR:".red(),
                 final_path,
                 e
             );
-            continue; // Skip moving this file if we can't make the folder
+            error_count += 1;
+            continue;
         }
 
-        // 2. Move the file
-        if source.exists() {
-            match fs::rename(&source, &target) {
-                Ok(_) => {
-                    // Formatting the success message
-                    if item.sub_category.is_empty() {
-                        println!("Moved: {} -> {}/", item.filename, item.category.green());
-                    } else {
-                        println!(
-                            "Moved: {} -> {}/{}",
-                            item.filename,
-                            item.category.green(),
-                            item.sub_category.blue()
-                        );
+        if let Ok(metadata) = fs::metadata(&source) {
+            if metadata.is_file() {
+                match move_file_cross_platform(&source, &target) {
+                    Ok(_) => {
+                        if item.sub_category.is_empty() {
+                            println!(
+                                "Moved: {} -> {}/",
+                                item.filename,
+                                item.category.green()
+                            );
+                        } else {
+                            println!(
+                                "Moved: {} -> {}/{}",
+                                item.filename,
+                                item.category.green(),
+                                item.sub_category.blue()
+                            );
+                        }
+                        moved_count += 1;
+                    }
+                    Err(e) => {
+                        eprintln!("{} Failed to move {}: {}", "ERROR:".red(), item.filename, e);
+                        error_count += 1;
                     }
                 }
-                Err(e) => println!("{} Failed to move {}: {}", "ERROR:".red(), item.filename, e),
+            } else {
+                eprintln!(
+                    "{} Skipping {}: Not a file",
+                    "WARN:".yellow(),
+                    item.filename
+                );
             }
         } else {
-            println!(
+            eprintln!(
                 "{} Skipping {}: File not found",
                 "WARN:".yellow(),
                 item.filename
             );
+            error_count += 1;
         }
     }
 
     println!("\n{}", "Organization Complete!".bold().green());
-} // --- 1. Helper to check if file is likely text ---
-pub fn is_text_file(path: &Path) -> bool {
+    println!(
+        "Files moved: {}, Errors: {}",
+        moved_count.to_string().green(),
+        error_count.to_string().red()
+    );
+} pub fn is_text_file(path: &Path) -> bool {
     let text_extensions = [
-        "txt", "md", "rs", "py", "js", "html", "css", "json", "xml", "csv",
+        "txt",
+        "md",
+        "rs",
+        "py",
+        "js",
+        "ts",
+        "jsx",
+        "tsx",
+        "html",
+        "css",
+        "json",
+        "xml",
+        "csv",
+        "yaml",
+        "yml",
+        "toml",
+        "ini",
+        "cfg",
+        "conf",
+        "log",
+        "sh",
+        "bat",
+        "ps1",
+        "sql",
+        "c",
+        "cpp",
+        "h",
+        "hpp",
+        "java",
+        "go",
+        "rb",
+        "php",
+        "swift",
+        "kt",
+        "scala",
+        "lua",
+        "r",
+        "m",
     ];
 
-    if let Some(ext) = path.extension() {
-        if let Some(ext_str) = ext.to_str() {
+    if let Some(ext) = path.extension()
+        && let Some(ext_str) = ext.to_str() {
             return text_extensions.contains(&ext_str.to_lowercase().as_str());
         }
-    }
     false
 }
 

@@ -1,2 +1,4 @@
 /target
 .env
+apikey.txt
+.noentropy_cache.json

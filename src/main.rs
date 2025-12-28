@@ -1,36 +1,46 @@
+use clap::Parser;
 use colored::*;
 use futures::future::join_all;
 use noentropy::cache::Cache;
+use noentropy::config;
 use noentropy::files::{FileBatch, OrganizationPlan, execute_move};
 use noentropy::gemini::GeminiClient;
 use noentropy::gemini_errors::GeminiError;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(short, long, help = "Preview changes without moving files")]
+    dry_run: bool,
+
+    #[arg(
+        short,
+        long,
+        default_value_t = 5,
+        help = "Maximum concurrent API requests"
+    )]
+    max_concurrent: usize,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv::dotenv().ok();
-    let api_key = std::env::var("GEMINI_API_KEY")
-        .map_err(|_| "GEMINI_API_KEY environment variable not set. Please set it in your .env file.")?;
-    let download_path_var = std::env::var("DOWNLOAD_FOLDER")
-        .map_err(|_| "DOWNLOAD_FOLDER environment variable not set. Please set it in your .env file.")?;
+    let args = Args::parse();
+    let api_key = config::get_or_prompt_api_key()?;
+    let download_path = config::get_or_prompt_download_folder()?;
 
-    // 1. Setup
-    let download_path: PathBuf = PathBuf::from(download_path_var.to_string());
     let client: GeminiClient = GeminiClient::new(api_key);
-    
-    // Initialize cache
+
     let cache_path = Path::new(".noentropy_cache.json");
     let mut cache = Cache::load_or_create(cache_path);
-    
-    // Clean up old cache entries (older than 7 days)
+
     cache.cleanup_old_entries(7 * 24 * 60 * 60);
 
-    // 2. Get Files
     let batch = FileBatch::from_path(download_path.clone());
 
     if batch.filenames.is_empty() {
-        println!("No files found to organize!");
+        println!("{}", "No files found to organize!".yellow());
         return Ok(());
     }
 
@@ -39,7 +49,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         batch.count()
     );
 
-    // 3. Call Gemini for Initial Categorization
     let mut plan: OrganizationPlan = match client
         .organize_files_with_cache(batch.filenames, Some(&mut cache), Some(&download_path))
         .await
@@ -51,22 +60,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    println!("Gemini Plan received! Performing deep inspection...");
+    println!("{}", "Gemini Plan received! Performing deep inspection...".green());
 
-    // 4. Deep Inspection - Process files concurrently
     let client = Arc::new(client);
-    
-    let tasks: Vec<_> = plan.files.iter_mut()
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(args.max_concurrent));
+
+    let tasks: Vec<_> = plan
+        .files
+        .iter_mut()
         .zip(batch.paths.iter())
         .map(|(file_category, path)| {
             let client = Arc::clone(&client);
             let filename = file_category.filename.clone();
             let category = file_category.category.clone();
             let path = path.clone();
-            
+            let semaphore = Arc::clone(&semaphore);
+
             async move {
                 if noentropy::files::is_text_file(&path) {
-                    if let Some(content) = noentropy::files::read_file_sample(&path, 2000) {
+                    let _permit = semaphore.acquire().await.unwrap();
+                    if let Some(content) = noentropy::files::read_file_sample(&path, 5000) {
                         println!("Reading content of {}...", filename.green());
                         client.get_ai_sub_category(&filename, &category, &content).await
                     } else {
@@ -79,22 +92,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    // Wait for all concurrent tasks to complete
     let sub_categories = join_all(tasks).await;
-    
-    // Apply the results back to the plan
+
     for (file_category, sub_category) in plan.files.iter_mut().zip(sub_categories) {
         file_category.sub_category = sub_category;
     }
 
-    println!("Deep inspection complete! Moving Files.....");
-    // 5. Execute
-    execute_move(&download_path, plan);
-    println!("Done!");
-    
-    // Save cache before exiting
+    println!("{}", "Deep inspection complete! Moving Files.....".green());
+
+    if args.dry_run {
+        println!(
+            "{} Dry run mode - skipping file moves.",
+            "INFO:".cyan()
+        );
+    } else {
+        execute_move(&download_path, plan);
+    }
+    println!("{}", "Done!".green().bold());
+
     if let Err(e) = cache.save(cache_path) {
-        println!("Warning: Failed to save cache: {}", e);
+        eprintln!("Warning: Failed to save cache: {}", e);
     }
 
     Ok(())

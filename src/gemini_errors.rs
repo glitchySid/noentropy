@@ -73,8 +73,7 @@ impl GeminiError {
     /// Parse HTTP response and convert to appropriate GeminiError
     pub async fn from_response(response: Response) -> Self {
         let status = response.status();
-        
-        // Try to parse error response body
+
         let error_text = match response.text().await {
             Ok(text) => text,
             Err(e) => {
@@ -82,12 +81,10 @@ impl GeminiError {
             }
         };
 
-        // Try to parse structured error response
         if let Ok(gemini_error) = serde_json::from_str::<GeminiErrorResponse>(&error_text) {
             return Self::from_gemini_error(gemini_error.error, status.as_u16());
         }
 
-        // Fallback to HTTP status code based errors
         Self::from_status_code(status, &error_text)
     }
 
@@ -96,13 +93,11 @@ impl GeminiError {
         
         match error_detail.status.as_str() {
             "RESOURCE_EXHAUSTED" => {
-                if let Some(retry_info) = details.iter().find(|d| d.retry_delay.is_some()) {
-                    if let Some(retry_delay) = &retry_info.retry_delay {
-                        if let Ok(seconds) = retry_delay.parse::<u32>() {
+                if let Some(retry_info) = details.iter().find(|d| d.retry_delay.is_some())
+                    && let Some(retry_delay) = &retry_info.retry_delay
+                        && let Ok(seconds) = retry_delay.parse::<u32>() {
                             return GeminiError::RateLimitExceeded { retry_after: seconds };
                         }
-                    }
-                }
                 
                 if let Some(quota_info) = details.iter().find(|d| d.quota_limit.is_some()) {
                     let limit = quota_info.quota_limit.as_deref().unwrap_or("unknown");
@@ -177,7 +172,7 @@ impl GeminiError {
             500 => GeminiError::InternalError { 
                 details: error_text.to_string() 
             },
-            502 | 503 | 504 => GeminiError::ServiceUnavailable { 
+            502..=504 => GeminiError::ServiceUnavailable { 
                 reason: error_text.to_string() 
             },
             _ => GeminiError::ApiError { 
@@ -189,14 +184,14 @@ impl GeminiError {
 
     /// Check if this error is retryable
     pub fn is_retryable(&self) -> bool {
-        match self {
-            GeminiError::RateLimitExceeded { .. } => true,
-            GeminiError::ServiceUnavailable { .. } => true,
-            GeminiError::Timeout { .. } => true,
-            GeminiError::NetworkError(_) => true,
-            GeminiError::InternalError { .. } => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            GeminiError::RateLimitExceeded { .. }
+                | GeminiError::ServiceUnavailable { .. }
+                | GeminiError::Timeout { .. }
+                | GeminiError::NetworkError(_)
+                | GeminiError::InternalError { .. }
+        )
     }
 
     /// Get retry delay for retryable errors
@@ -217,10 +212,9 @@ impl GeminiError {
 fn extract_model_name(message: &str) -> String {
     // Try to extract model name from error message
     // Example: "Model 'gemini-1.5-flash' not found"
-    if let Some(start) = message.find('\'') {
-        if let Some(end) = message[start + 1..].find('\'') {
+    if let Some(start) = message.find('\'')
+        && let Some(end) = message[start + 1..].find('\'') {
             return message[start + 1..start + 1 + end].to_string();
         }
-    }
     "unknown".to_string()
 }

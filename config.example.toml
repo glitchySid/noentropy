@@ -1,0 +1,9 @@
+# NoEntropy Configuration File
+# Location: ~/.config/noentropy/config.toml
+
+# Your Google Gemini API Key
+# Get one at: https://ai.google.dev/
+api_key = "your_api_key_here"
+
+# Path to folder to organize (e.g., ~/Downloads)
+download_folder = "/path/to/your/downloads"

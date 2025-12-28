@@ -42,14 +42,28 @@ pub struct GeminiClient {
     api_key: String,
     client: Client,
     base_url: String,
+    model: String,
+    timeout: Duration,
 }
 
 impl GeminiClient {
     pub fn new(api_key: String) -> Self {
+        Self::with_model(api_key, "gemini-3-flash-preview".to_string())
+    }
+
+    pub fn with_model(api_key: String, model: String) -> Self {
         Self {
             api_key,
-            client: Client::new(),
-            base_url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent".to_string(),
+            client: Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_default(),
+            base_url: format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+                model
+            ),
+            model,
+            timeout: Duration::from_secs(30),
         }
     }
 
@@ -71,10 +85,10 @@ impl GeminiClient {
         let url = format!("{}?key={}", self.base_url, self.api_key);
 
         // Check cache first if available
-        if let (Some(cache_ref), Some(base_path)) = (cache.as_ref(), base_path) {
-            if let Some(cached_response) = cache_ref.get_cached_response(&filenames, base_path) {
-                return Ok(cached_response);
-            }
+        if let (Some(cache_ref), Some(base_path)) = (cache.as_ref(), base_path)
+            && let Some(cached_response) = cache_ref.get_cached_response(&filenames, base_path)
+        {
+            return Ok(cached_response);
         }
 
         // 1. Construct the Prompt
@@ -101,14 +115,19 @@ impl GeminiClient {
 
         // 4. Parse
         if res.status().is_success() {
-            let gemini_response: GeminiResponse = res.json().await.map_err(GeminiError::NetworkError)?;
+            let gemini_response: GeminiResponse =
+                res.json().await.map_err(GeminiError::NetworkError)?;
 
             // Extract raw JSON string from Gemini using proper structs
-            let raw_text = &gemini_response.candidates
-                .get(0)
-                .ok_or_else(|| GeminiError::InvalidResponse("No candidates in response".to_string()))?
-                .content.parts
-                .get(0)
+            let raw_text = &gemini_response
+                .candidates
+                .first()
+                .ok_or_else(|| {
+                    GeminiError::InvalidResponse("No candidates in response".to_string())
+                })?
+                .content
+                .parts
+                .first()
                 .ok_or_else(|| GeminiError::InvalidResponse("No parts in content".to_string()))?
                 .text;
 
@@ -147,6 +166,7 @@ impl GeminiClient {
     ) -> Result<reqwest::Response, GeminiError> {
         let mut attempts = 0;
         let max_attempts = 3;
+        let mut base_delay = Duration::from_secs(2);
 
         loop {
             attempts += 1;
@@ -158,23 +178,34 @@ impl GeminiClient {
                     }
 
                     let error = GeminiError::from_response(response).await;
-                    
+
                     if error.is_retryable() && attempts < max_attempts {
-                        if let Some(delay) = error.retry_delay() {
-                            println!("API Error: {}. Retrying in {} seconds (attempt {}/{})", 
-                                error, delay.as_secs(), attempts, max_attempts);
-                            tokio::time::sleep(delay).await;
-                            continue;
-                        }
+                        let delay = error.retry_delay().unwrap_or(base_delay);
+                        println!(
+                            "API Error: {}. Retrying in {} seconds (attempt {}/{})",
+                            error,
+                            delay.as_secs(),
+                            attempts,
+                            max_attempts
+                        );
+                        tokio::time::sleep(delay).await;
+                        base_delay *= 2;
+                        continue;
                     }
-                    
+
                     return Err(error);
                 }
                 Err(e) => {
                     if attempts < max_attempts {
-                        println!("Network error: {}. Retrying in {} seconds (attempt {}/{})", 
-                            e, 5, attempts, max_attempts);
-                        tokio::time::sleep(Duration::from_secs(5)).await;
+                        println!(
+                            "Network error: {}. Retrying in {} seconds (attempt {}/{})",
+                            e,
+                            base_delay.as_secs(),
+                            attempts,
+                            max_attempts
+                        );
+                        tokio::time::sleep(base_delay).await;
+                        base_delay *= 2;
                         continue;
                     }
                     return Err(GeminiError::NetworkError(e));
@@ -202,27 +233,45 @@ impl GeminiClient {
             }]
         });
 
-        let res = self.client.post(&url).json(&request_body).send().await;
+        let res = match self.client.post(&url).json(&request_body).send().await {
+            Ok(res) => res,
+            Err(e) => {
+                eprintln!(
+                    "Warning: Failed to get sub-category for {}: {}",
+                    filename, e
+                );
+                return "General".to_string();
+            }
+        };
 
-        if let Ok(res) = res {
-            if res.status().is_success() {
-                let gemini_response: GeminiResponse = res.json().await.unwrap_or_default();
-                let sub_category = gemini_response.candidates
-                    .get(0)
-                    .and_then(|c| c.content.parts.get(0))
-                    .map(|p| p.text.trim())
-                    .unwrap_or("General")
-                    .to_string();
-
-                if sub_category.is_empty() {
-                    "General".to_string()
-                } else {
-                    sub_category
+        if res.status().is_success() {
+            let gemini_response: GeminiResponse = match res.json().await {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("Warning: Failed to parse response for {}: {}", filename, e);
+                    return "General".to_string();
                 }
-            } else {
+            };
+
+            let sub_category = gemini_response
+                .candidates
+                .first()
+                .and_then(|c| c.content.parts.first())
+                .map(|p| p.text.trim())
+                .unwrap_or("General")
+                .to_string();
+
+            if sub_category.is_empty() {
                 "General".to_string()
+            } else {
+                sub_category
             }
         } else {
+            eprintln!(
+                "Warning: API returned error for {}: {}",
+                filename,
+                res.status()
+            );
             "General".to_string()
         }
     }

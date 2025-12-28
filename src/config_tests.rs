@@ -1,4 +1,5 @@
 use crate::config::*;
+use std::path::Path;
 
 #[test]
 fn test_config_serialization() {
@@ -17,37 +18,37 @@ fn test_config_serialization() {
 
 #[test]
 fn test_validate_api_key_valid() {
-    assert!(validate_api_key("AIzaSyB1234567890123456789012345678"));
-    assert!(validate_api_key("AIzaSyB123456789012345678901234567890"));
+    assert!(crate::prompt::Prompter::validate_api_key("AIzaSyB1234567890123456789012345678"));
+    assert!(crate::prompt::Prompter::validate_api_key("AIzaSyB123456789012345678901234567890"));
 }
 
 #[test]
 fn test_validate_api_key_invalid() {
-    assert!(!validate_api_key(""));
-    assert!(!validate_api_key("invalid_key"));
-    assert!(!validate_api_key("BizaSyB1234567890123456789012345678"));
-    assert!(!validate_api_key("short"));
+    assert!(!crate::prompt::Prompter::validate_api_key(""));
+    assert!(!crate::prompt::Prompter::validate_api_key("invalid_key"));
+    assert!(!crate::prompt::Prompter::validate_api_key("BizaSyB1234567890123456789012345678"));
+    assert!(!crate::prompt::Prompter::validate_api_key("short"));
 }
 
 #[test]
 fn test_validate_folder_path_valid() {
     let temp_dir = tempfile::tempdir().unwrap();
-    assert!(validate_folder_path(temp_dir.path()));
+    assert!(crate::prompt::Prompter::validate_folder_path(temp_dir.path()));
 }
 
 #[test]
 fn test_validate_folder_path_invalid() {
-    assert!(!validate_folder_path(Path::new("/nonexistent/path/that/does/not/exist")));
+    assert!(!crate::prompt::Prompter::validate_folder_path(Path::new("/nonexistent/path/that/does/not/exist")));
 
     let temp_file = tempfile::NamedTempFile::new().unwrap();
-    assert!(!validate_folder_path(temp_file.path()));
+    assert!(!crate::prompt::Prompter::validate_folder_path(temp_file.path()));
 }
 
 #[test]
 fn test_expand_home_with_tilde() {
-    if let Some(base_dirs) = BaseDirs::new() {
+    if let Some(base_dirs) = directories::BaseDirs::new() {
         let home = base_dirs.home_dir();
-        let expanded = expand_home("~/test/path");
+        let expanded = crate::prompt::Prompter::expand_home("~/test/path");
         assert!(expanded.starts_with(home.to_string_lossy().as_ref()));
         assert!(expanded.contains("test/path"));
     }
@@ -55,16 +56,16 @@ fn test_expand_home_with_tilde() {
 
 #[test]
 fn test_expand_home_without_tilde() {
-    let expanded = expand_home("/absolute/path");
+    let expanded = crate::prompt::Prompter::expand_home("/absolute/path");
     assert_eq!(expanded, "/absolute/path");
 
-    let expanded = expand_home("relative/path");
+    let expanded = crate::prompt::Prompter::expand_home("relative/path");
     assert_eq!(expanded, "relative/path");
 }
 
 #[test]
 fn test_get_default_downloads_folder() {
-    let path = get_default_downloads_folder();
+    let path = crate::prompt::Prompter::get_default_downloads_folder();
     assert!(path.ends_with("Downloads"));
 }
 

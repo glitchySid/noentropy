@@ -45,7 +45,6 @@ impl FileBatch {
 mod tests {
     use super::*;
     use std::fs::{self, File};
-    use std::path::Path;
 
     #[test]
     fn test_file_batch_from_path() {

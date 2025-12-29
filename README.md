@@ -38,9 +38,21 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 
 ## Installation
 
+1. **Download Binary**
+    Download binary for your operating system(Windows, Linux or Mac)
+    ```bash
+    https://github.com/glitchySid/noentropy/releases
+    ```
+2. **Give Permisson(For Linux/Mac)**
+    ```bash
+      chmod +x binaryfilename
+    ```
+
+## Run Locally
+
 1. **Clone repository**
    ```bash
-   git clone https://github.com/yourusername/noentropy.git
+   git clone https://github.com/glitchySid/noentropy.git
    cd noentropy
    ```
 
@@ -128,12 +140,23 @@ Use multiple options together:
 cargo run --release -- --dry-run --max-concurrent 3
 ```
 
+### Recursive Mode
+
+Organize files in subdirectories recursively:
+
+```bash
+cargo run --release -- --recursive
+```
+
+This scans all subdirectories within your download folder and organizes files from the entire directory tree, maintaining relative folder structure when creating categories.
+
 ### Command-Line Options
 
 | Option | Short | Default | Description |
 |--------|-------|---------|-------------|
-| `--dry-run` | None | `false` | Preview changes without moving files |
-| `--max-concurrent` | None | `5` | Maximum concurrent API requests |
+| `--dry-run` | `-d` | `false` | Preview changes without moving files |
+| `--max-concurrent` | `-m` | `5` | Maximum concurrent API requests |
+| `--recursive` | None | `false` | Recursively search files in subdirectories |
 | `--help` | `-h` | - | Show help message |
 
 ## How It Works

@@ -22,6 +22,8 @@ struct Args {
         help = "Maximum concurrent API requests"
     )]
     max_concurrent: usize,
+    #[arg(long, help = "Recursively searches files in subdirectory")]
+    recursive: bool,
 }
 
 #[tokio::main]
@@ -37,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     cache.cleanup_old_entries(7 * 24 * 60 * 60);
 
-    let batch = FileBatch::from_path(download_path.clone());
+    let batch = FileBatch::from_path(download_path.clone(), args.recursive);
 
     if batch.filenames.is_empty() {
         println!("{}", "No files found to organize!".yellow());

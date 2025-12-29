@@ -1,6 +1,6 @@
 use super::*;
-use tempfile::TempDir;
 use std::fs;
+use tempfile::TempDir;
 
 #[test]
 fn test_undo_log_creation() {
@@ -77,7 +77,8 @@ fn test_cleanup_old_entries() {
     let old_timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_secs() - (10 * 24 * 60 * 60);
+        .as_secs()
+        - (10 * 24 * 60 * 60);
 
     let source = PathBuf::from("/test/source.txt");
     let dest = PathBuf::from("/test/dest/source.txt");

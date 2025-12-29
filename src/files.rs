@@ -73,7 +73,11 @@ fn move_file_cross_platform(source: &Path, target: &Path) -> io::Result<()> {
     }
 }
 
-pub fn execute_move(base_path: &Path, plan: OrganizationPlan, mut undo_log: Option<&mut crate::undo::UndoLog>) {
+pub fn execute_move(
+    base_path: &Path,
+    plan: OrganizationPlan,
+    mut undo_log: Option<&mut crate::undo::UndoLog>,
+) {
     println!("\n{}", "--- EXECUTION PLAN ---".bold().underline());
 
     if plan.files.is_empty() {
@@ -140,7 +144,7 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan, mut undo_log: Opti
 
         if let Ok(metadata) = fs::metadata(&source) {
             if metadata.is_file() {
-                        match move_file_cross_platform(&source, &target) {
+                match move_file_cross_platform(&source, &target) {
                     Ok(_) => {
                         if item.sub_category.is_empty() {
                             println!("Moved: {} -> {}/", item.filename, item.category.green());
@@ -197,7 +201,8 @@ pub fn undo_moves(
     undo_log: &mut crate::undo::UndoLog,
     dry_run: bool,
 ) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
-    let completed_moves: Vec<_> = undo_log.get_completed_moves()
+    let completed_moves: Vec<_> = undo_log
+        .get_completed_moves()
         .into_iter()
         .cloned()
         .collect();
@@ -208,7 +213,11 @@ pub fn undo_moves(
     }
 
     println!("\n{}", "--- UNDO PREVIEW ---".bold().underline());
-    println!("{} will restore {} files:", "INFO:".cyan(), completed_moves.len());
+    println!(
+        "{} will restore {} files:",
+        "INFO:".cyan(),
+        completed_moves.len()
+    );
 
     for record in &completed_moves {
         if let Ok(rel_dest) = record.destination_path.strip_prefix(base_path) {
@@ -326,11 +335,7 @@ fn cleanup_empty_directories(
             && entries.next().is_none()
             && fs::remove_dir(&full_path).is_ok()
         {
-            println!(
-                "{} Removed empty directory: {}",
-                "INFO:".cyan(),
-                dir_path
-            );
+            println!("{} Removed empty directory: {}", "INFO:".cyan(), dir_path);
         }
     }
 

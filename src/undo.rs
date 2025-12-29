@@ -48,10 +48,7 @@ impl UndoLog {
             match fs::read_to_string(undo_log_path) {
                 Ok(content) => match serde_json::from_str::<UndoLog>(&content) {
                     Ok(log) => {
-                        println!(
-                            "Loaded undo log with {} entries",
-                            log.get_completed_count()
-                        );
+                        println!("Loaded undo log with {} entries", log.get_completed_count());
                         log
                     }
                     Err(_) => {
@@ -162,10 +159,7 @@ impl UndoLog {
 
         let removed_count = initial_count - self.entries.len();
         if removed_count > 0 {
-            println!(
-                "Cleaned up {} old undo log entries",
-                removed_count
-            );
+            println!("Cleaned up {} old undo log entries", removed_count);
         }
 
         if self.entries.len() > self.max_entries {
@@ -211,10 +205,11 @@ impl UndoLog {
         for entry in &self.entries {
             if entry.status == MoveStatus::Completed
                 && let Ok(rel_path) = entry.destination_path.strip_prefix(base_path)
-                    && let Some(parent) = rel_path.parent() {
-                        let dir_path = parent.to_string_lossy().into_owned();
-                        *usage.entry(dir_path).or_insert(0) += 1;
-                    }
+                && let Some(parent) = rel_path.parent()
+            {
+                let dir_path = parent.to_string_lossy().into_owned();
+                *usage.entry(dir_path).or_insert(0) += 1;
+            }
         }
 
         usage

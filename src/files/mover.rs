@@ -1,14 +1,10 @@
-use colored::*;
 use crate::models::OrganizationPlan;
 use crate::storage::UndoLog;
+use colored::*;
 use std::io;
 use std::{ffi::OsStr, fs, path::Path};
 
-pub fn execute_move(
-    base_path: &Path,
-    plan: OrganizationPlan,
-    mut undo_log: Option<&mut UndoLog>,
-) {
+pub fn execute_move(base_path: &Path, plan: OrganizationPlan, mut undo_log: Option<&mut UndoLog>) {
     println!("\n{}", "--- EXECUTION PLAN ---".bold().underline());
 
     if plan.files.is_empty() {

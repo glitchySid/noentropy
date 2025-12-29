@@ -6,8 +6,8 @@ pub use undo_log::UndoLog;
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::{Cache, UndoLog};
     use crate::models::{FileMoveRecord, MoveStatus};
+    use crate::storage::{Cache, UndoLog};
     use std::path::PathBuf;
 
     #[test]
@@ -42,9 +42,9 @@ mod tests {
         let mut log = UndoLog::new();
         let source = PathBuf::from("/from/file.txt");
         let dest = PathBuf::from("/to/file.txt");
-        
+
         log.record_move(source.clone(), dest.clone());
-        
+
         assert!(log.has_completed_moves());
         assert_eq!(log.get_completed_count(), 1);
     }
@@ -54,9 +54,9 @@ mod tests {
         let mut log = UndoLog::new();
         let source = PathBuf::from("/from/file.txt");
         let dest = PathBuf::from("/to/file.txt");
-        
+
         log.record_failed_move(source.clone(), dest.clone());
-        
+
         assert!(!log.has_completed_moves());
         assert_eq!(log.get_completed_count(), 0);
     }
@@ -66,10 +66,10 @@ mod tests {
         let mut log = UndoLog::new();
         let source = PathBuf::from("/from/file.txt");
         let dest = PathBuf::from("/to/file.txt");
-        
+
         log.record_move(source.clone(), dest.clone());
         assert_eq!(log.get_completed_count(), 1);
-        
+
         log.mark_as_undone(&dest);
         assert_eq!(log.get_completed_count(), 0);
     }
@@ -79,7 +79,7 @@ mod tests {
         let record = FileMoveRecord::new(
             PathBuf::from("/from"),
             PathBuf::from("/to"),
-            MoveStatus::Completed
+            MoveStatus::Completed,
         );
         assert_eq!(record.status, MoveStatus::Completed);
     }

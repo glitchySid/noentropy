@@ -40,9 +40,7 @@ fn test_validate_api_key_invalid() {
 #[test]
 fn test_validate_folder_path_valid() {
     let temp_dir = tempfile::tempdir().unwrap();
-    assert!(Prompter::validate_folder_path(
-        temp_dir.path()
-    ));
+    assert!(Prompter::validate_folder_path(temp_dir.path()));
 }
 
 #[test]
@@ -52,9 +50,7 @@ fn test_validate_folder_path_invalid() {
     )));
 
     let temp_file = tempfile::NamedTempFile::new().unwrap();
-    assert!(!Prompter::validate_folder_path(
-        temp_file.path()
-    ));
+    assert!(!Prompter::validate_folder_path(temp_file.path()));
 }
 
 #[test]

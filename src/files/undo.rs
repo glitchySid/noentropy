@@ -1,5 +1,5 @@
-use colored::*;
 use crate::storage::UndoLog;
+use colored::*;
 use std::fs;
 use std::io;
 use std::path::Path;

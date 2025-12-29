@@ -1,11 +1,11 @@
-use colored::*;
-use futures::future::join_all;
 use crate::cli::Args;
-use crate::settings::Config;
-use crate::files::{execute_move, FileBatch, is_text_file, read_file_sample};
+use crate::files::{FileBatch, execute_move, is_text_file, read_file_sample};
 use crate::gemini::GeminiClient;
 use crate::models::OrganizationPlan;
+use crate::settings::Config;
 use crate::storage::{Cache, UndoLog};
+use colored::*;
+use futures::future::join_all;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -137,35 +137,38 @@ pub async fn handle_organization(
     );
 
     let client_arc: Arc<GeminiClient> = Arc::new(client);
-    let semaphore: Arc<tokio::sync::Semaphore> = Arc::new(tokio::sync::Semaphore::new(args.max_concurrent));
+    let semaphore: Arc<tokio::sync::Semaphore> =
+        Arc::new(tokio::sync::Semaphore::new(args.max_concurrent));
 
     let tasks: Vec<_> = plan
         .files
         .iter_mut()
         .zip(batch.paths.iter())
-        .map(|(file_category, path): (&mut crate::models::FileCategory, &PathBuf)| {
-            let client: Arc<GeminiClient> = Arc::clone(&client_arc);
-            let filename: String = file_category.filename.clone();
-            let category: String = file_category.category.clone();
-            let path: PathBuf = path.clone();
-            let semaphore: Arc<tokio::sync::Semaphore> = Arc::clone(&semaphore);
+        .map(
+            |(file_category, path): (&mut crate::models::FileCategory, &PathBuf)| {
+                let client: Arc<GeminiClient> = Arc::clone(&client_arc);
+                let filename: String = file_category.filename.clone();
+                let category: String = file_category.category.clone();
+                let path: PathBuf = path.clone();
+                let semaphore: Arc<tokio::sync::Semaphore> = Arc::clone(&semaphore);
 
-            async move {
-                if is_text_file(&path) {
-                    let _permit = semaphore.acquire().await.unwrap();
-                    if let Some(content) = read_file_sample(&path, 5000) {
-                        println!("Reading content of {}...", filename.green());
-                        client
-                            .get_ai_sub_category(&filename, &category, &content)
-                            .await
+                async move {
+                    if is_text_file(&path) {
+                        let _permit = semaphore.acquire().await.unwrap();
+                        if let Some(content) = read_file_sample(&path, 5000) {
+                            println!("Reading content of {}...", filename.green());
+                            client
+                                .get_ai_sub_category(&filename, &category, &content)
+                                .await
+                        } else {
+                            String::new()
+                        }
                     } else {
                         String::new()
                     }
-                } else {
-                    String::new()
                 }
-            }
-        })
+            },
+        )
         .collect();
 
     let sub_categories: Vec<String> = join_all(tasks).await;

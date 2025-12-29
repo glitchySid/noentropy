@@ -5,4 +5,6 @@ pub mod types;
 
 pub use client::GeminiClient;
 pub use errors::GeminiError;
-pub use types::{Candidate, Content, FileCategoryResponse, GeminiResponse, OrganizationPlanResponse, Part};
+pub use types::{
+    Candidate, Content, FileCategoryResponse, GeminiResponse, OrganizationPlanResponse, Part,
+};

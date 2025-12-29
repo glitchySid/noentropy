@@ -6,3 +6,4 @@ pub mod gemini_errors;
 pub mod gemini_helpers;
 pub mod gemini_types;
 pub mod prompt;
+pub mod undo;

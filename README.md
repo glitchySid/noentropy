@@ -29,6 +29,7 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 - **📝 Text File Support** - Inspects 30+ text formats for better categorization
 - **✅ Interactive Confirmation** - Review organization plan before execution
 - **🎯 Configurable** - Adjust concurrency limits and model settings
+- **↩️ Undo Support** - Revert file organization changes if needed
 
 ## Prerequisites
 
@@ -135,10 +136,30 @@ cargo run --release -- --max-concurrent 10
 ### Combined Options
 
 Use multiple options together:
-
 ```bash
 cargo run --release -- --dry-run --max-concurrent 3
 ```
+
+### Undo Mode
+
+Revert the last file organization:
+
+```bash
+cargo run --release -- --undo
+```
+
+Preview what would be undone without actually reversing changes:
+
+```bash
+cargo run --release -- --undo --dry-run
+```
+
+The undo feature:
+- Tracks all file moves in `~/.config/noentropy/data/undo_log.json`
+- Shows a preview of files that will be restored before execution
+- Handles edge cases (missing files, conflicts, permission errors)
+- Automatically cleans up empty directories after undo
+- Keeps undo history for 30 days with auto-cleanup
 
 ### Recursive Mode
 
@@ -157,6 +178,7 @@ This scans all subdirectories within your download folder and organizes files fr
 | `--dry-run` | `-d` | `false` | Preview changes without moving files |
 | `--max-concurrent` | `-m` | `5` | Maximum concurrent API requests |
 | `--recursive` | None | `false` | Recursively search files in subdirectories |
+| `--undo` | None | `false` | Undo the last file organization |
 | `--help` | `-h` | - | Show help message |
 
 ## How It Works
@@ -223,6 +245,36 @@ Files moved: 47, Errors: 0
 Done!
 ```
 
+#### Undo Example
+
+```bash
+$ cargo run --release -- --undo
+
+--- UNDO PREVIEW ---
+INFO: will restore 5 files:
+  Documents/report.pdf -> Downloads/
+  Documents/Notes/notes.txt -> Downloads/
+  Code/Config/config.yaml -> Downloads/
+  Code/Scripts/script.py -> Downloads/
+  Images/photo.png -> Downloads/
+
+Do you want to undo these changes? [y/N]: y
+
+--- UNDOING MOVES ---
+Restored: Documents/report.pdf -> Downloads/
+Restored: Documents/Notes/notes.txt -> Downloads/
+Restored: Code/Config/config.yaml -> Downloads/
+Restored: Code/Scripts/script.py -> Downloads/
+Restored: Images/photo.png -> Downloads/
+
+INFO: Removed empty directory: Documents/Notes
+INFO: Removed empty directory: Code/Config
+INFO: Removed empty directory: Code/Scripts
+
+UNDO COMPLETE!
+Files restored: 5, Skipped: 0, Failed: 0
+```
+
 ## Supported Categories
 
 NoEntropy organizes files into these categories:
@@ -260,11 +312,42 @@ NoEntropy includes an intelligent caching system to minimize API calls:
 
 1. **First Run**: Files are analyzed and categorized via Gemini API
 2. **Response Cached**: Organization plan saved with file metadata
-3. **Subsequent Runs**: 
+3. **Subsequent Runs**:
    - Checks if files changed (size/modification time)
    - If unchanged, uses cached categorization
    - If changed, re-analyzes via API
 4. **Auto-Cleanup**: Removes cache entries older than 7 days
+
+## Undo Log
+
+NoEntropy tracks all file moves to enable undo functionality:
+
+- **Location**: `~/.config/noentropy/data/undo_log.json`
+- **Retention**: 30 days (old entries auto-removed)
+- **Max Entries**: 1000 entries (oldest evicted when limit reached)
+- **Status Tracking**: Completed, Undone, Failed states for each move
+- **Conflict Handling**: Skips files with conflicts and reports warnings
+
+### How Undo Works
+
+1. **During Organization**: Every file move is recorded with source/destination paths
+2. **Undo Execution**:
+   - Lists all completed moves to be reversed
+   - Shows preview of what will be restored
+   - Asks for user confirmation
+   - Moves files back to original locations
+   - Handles conflicts (source exists, destination missing)
+   - Cleans up empty directories left behind
+3. **Status Updates**: Marks successfully undone operations
+4. **Auto-Cleanup**: Removes undo log entries older than 30 days
+
+### Undo Safety Features
+
+- **Preview Before Action**: Always shows what will be undone before executing
+- **Conflict Detection**: Checks if source path already exists before restoring
+- **Missing File Handling**: Gracefully handles files that were deleted after move
+- **Partial Undo Support**: Continues even if some operations fail
+- **Dry-Run Mode**: Preview undo operations without executing them
 
 ## Troubleshooting
 
@@ -308,6 +391,25 @@ download_folder = "/path/to/your/Downloads"
 
 **Solution**: Delete `.noentropy_cache.json` and run again. A new cache will be created.
 
+### "No completed moves to undo"
+
+**Solution**: This means there are no file moves that can be undone. Either:
+- No files have been organized yet
+- All previous moves have already been undone
+- The undo log was deleted
+
+### "Undo log not found"
+
+**Solution**: No undo history exists. Run organization first to create undo log, or check that `~/.config/noentropy/data/` directory exists.
+
+### "Skipping [file] - source already exists"
+
+**Solution**: A file already exists at the original location. The undo operation will skip it to prevent data loss. Manually check and resolve the conflict if needed.
+
+### "Failed to restore [file]"
+
+**Solution**: Check file permissions and ensure the file exists at the destination location. Other files will continue to be restored.
+
 ## Development
 
 ### Build in Debug Mode
@@ -346,7 +448,8 @@ noentropy/
 │   ├── gemini.rs         # Gemini API client
 │   ├── gemini_errors.rs  # Error handling
 │   ├── cache.rs          # Caching system
-│   └── files.rs          # File operations
+│   ├── files.rs          # File operations
+│   └── undo.rs          # Undo functionality
 ├── Cargo.toml            # Dependencies
 ├── config.example.toml    # Configuration template
 └── README.md             # This file
@@ -358,7 +461,7 @@ Based on community feedback, we're planning:
 
 - [ ] **Custom Categories** - Define custom categories in `config.toml`
 - [x] **Recursive Mode** - Organize files in subdirectories with `--recursive` flag
-- [ ] **Undo Functionality** - Revert file organization changes
+- [x] **Undo Functionality** - Revert file organization changes
 - [ ] **Custom Models** - Support for other AI providers
 - [ ] **GUI Version** - Desktop application for non-CLI users
 

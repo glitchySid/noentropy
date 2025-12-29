@@ -1,8 +1,8 @@
-use crate::cache::Cache;
-use crate::files::OrganizationPlan;
-use crate::gemini_errors::GeminiError;
-use crate::gemini_helpers::PromptBuilder;
-use crate::gemini_types::{GeminiResponse, OrganizationPlanResponse};
+use crate::gemini::errors::GeminiError;
+use crate::gemini::prompt::PromptBuilder;
+use crate::gemini::types::{GeminiResponse, OrganizationPlanResponse};
+use crate::models::OrganizationPlan;
+use crate::storage::Cache;
 use reqwest::Client;
 use serde_json::json;
 use std::path::Path;

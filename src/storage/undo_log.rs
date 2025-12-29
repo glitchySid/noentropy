@@ -1,23 +1,9 @@
+use crate::models::{FileMoveRecord, MoveStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct FileMoveRecord {
-    pub source_path: PathBuf,
-    pub destination_path: PathBuf,
-    pub timestamp: u64,
-    pub status: MoveStatus,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum MoveStatus {
-    Completed,
-    Undone,
-    Failed,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UndoLog {
@@ -78,18 +64,7 @@ impl UndoLog {
     }
 
     pub fn record_move(&mut self, source_path: PathBuf, destination_path: PathBuf) {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        let record = FileMoveRecord {
-            source_path,
-            destination_path,
-            timestamp,
-            status: MoveStatus::Completed,
-        };
-
+        let record = FileMoveRecord::new(source_path, destination_path, MoveStatus::Completed);
         self.entries.push(record);
 
         if self.entries.len() > self.max_entries {
@@ -98,18 +73,7 @@ impl UndoLog {
     }
 
     pub fn record_failed_move(&mut self, source_path: PathBuf, destination_path: PathBuf) {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        let record = FileMoveRecord {
-            source_path,
-            destination_path,
-            timestamp,
-            status: MoveStatus::Failed,
-        };
-
+        let record = FileMoveRecord::new(source_path, destination_path, MoveStatus::Failed);
         self.entries.push(record);
 
         if self.entries.len() > self.max_entries {
@@ -215,7 +179,3 @@ impl UndoLog {
         usage
     }
 }
-
-#[cfg(test)]
-#[path = "undo_tests.rs"]
-mod tests;

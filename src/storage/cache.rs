@@ -1,23 +1,10 @@
-use crate::files::OrganizationPlan;
+use crate::models::{CacheEntry, FileMetadata, OrganizationPlan};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct FileMetadata {
-    size: u64,
-    modified: u64,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CacheEntry {
-    pub response: OrganizationPlan,
-    pub timestamp: u64,
-    pub file_metadata: HashMap<String, FileMetadata>,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cache {
@@ -212,7 +199,3 @@ impl Cache {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "cache_tests.rs"]
-mod tests;

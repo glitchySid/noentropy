@@ -1,9 +1,14 @@
-pub mod cache;
-pub mod config;
+pub mod cli;
 pub mod files;
 pub mod gemini;
-pub mod gemini_errors;
-pub mod gemini_helpers;
-pub mod gemini_types;
-pub mod prompt;
-pub mod undo;
+pub mod models;
+pub mod settings;
+pub mod storage;
+
+pub use cli::Args;
+pub use files::{FileBatch, execute_move, is_text_file, read_file_sample, undo_moves};
+pub use gemini::GeminiClient;
+pub use gemini::GeminiError;
+pub use models::{FileCategory, FileMoveRecord, MoveStatus, OrganizationPlan};
+pub use settings::Config;
+pub use storage::{Cache, UndoLog};

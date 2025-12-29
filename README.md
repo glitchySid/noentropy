@@ -142,7 +142,7 @@ NoEntropy follows a five-step process to organize your files:
 
 ```
 ┌─────────────────┐
-│  1. Scan Files  │ → Read all files in DOWNLOAD_FOLDER
+│  1. Scan Files  │ → Read all files in DOWNLOAD_FOLDER (and subdir if --recursive flag is used)
 └────────┬────────┘
          ▼
 ┌─────────────────────────┐
@@ -334,7 +334,7 @@ noentropy/
 Based on community feedback, we're planning:
 
 - [ ] **Custom Categories** - Define custom categories in `config.toml`
-- [ ] **Recursive Mode** - Organize files in subdirectories with `--recursive` flag
+- [x] **Recursive Mode** - Organize files in subdirectories with `--recursive` flag
 - [ ] **Undo Functionality** - Revert file organization changes
 - [ ] **Custom Models** - Support for other AI providers
 - [ ] **GUI Version** - Desktop application for non-CLI users

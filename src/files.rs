@@ -2,6 +2,7 @@ use colored::*;
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::{ffi::OsStr, fs, path::Path, path::PathBuf};
+use walkdir::WalkDir;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileCategory {
@@ -21,31 +22,31 @@ pub struct FileBatch {
 impl FileBatch {
     /// Reads a directory path and populates lists of all files inside it.
     /// It skips sub-directories (does not read recursively).
-    pub fn from_path(root_path: PathBuf) -> Self {
+    pub fn from_path(root_path: PathBuf, recursive: bool) -> Self {
         let mut filenames = Vec::new();
         let mut paths = Vec::new();
-
-        let entries = match fs::read_dir(&root_path) {
-            Ok(entries) => entries,
-            Err(e) => {
-                eprintln!("Error reading directory {:?}: {}", root_path, e);
-                return FileBatch {
-                    filenames: Vec::new(),
-                    paths: Vec::new(),
-                };
-            }
+        let walker = if recursive {
+            WalkDir::new(&root_path).min_depth(1).follow_links(false)
+        } else {
+            WalkDir::new(&root_path)
+                .min_depth(1)
+                .max_depth(1)
+                .follow_links(false)
         };
-
-        for entry in entries.flatten() {
+        for entry in walker.into_iter().filter_map(|e| e.ok()) {
             let path = entry.path();
-            if path.is_file()
-                && let Ok(relative_path) = path.strip_prefix(&root_path)
-            {
-                filenames.push(relative_path.to_string_lossy().into_owned());
-                paths.push(path);
+            if path.is_file() {
+                match path.strip_prefix(&root_path) {
+                    Ok(relative_path) => {
+                        filenames.push(relative_path.to_string_lossy().into_owned());
+                        paths.push(path.to_path_buf());
+                    }
+                    Err(e) => {
+                        eprintln!("Error getting relative path for {:?}: {}", path, e);
+                    }
+                }
             }
         }
-
         FileBatch { filenames, paths }
     }
 

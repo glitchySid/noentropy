@@ -1,5 +1,5 @@
-use crate::files::{FileCategory, OrganizationPlan};
-use crate::gemini_types::OrganizationPlanResponse;
+use crate::models::{FileCategory, OrganizationPlan};
+use crate::gemini::types::OrganizationPlanResponse;
 
 impl OrganizationPlanResponse {
     pub fn to_organization_plan(self) -> OrganizationPlan {

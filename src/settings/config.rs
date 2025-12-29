@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+use super::prompt::Prompter;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub api_key: String,
@@ -95,7 +97,7 @@ pub fn get_or_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
     println!("{}", "🔑 NoEntropy Configuration".bold().cyan());
     println!("{}", "─────────────────────────────".cyan());
 
-    let api_key = crate::prompt::Prompter::prompt_api_key()?;
+    let api_key = Prompter::prompt_api_key()?;
 
     let mut config = Config::load().unwrap_or_default();
     config.api_key = api_key.clone();
@@ -116,7 +118,7 @@ pub fn get_or_prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Er
     println!();
     println!("{}", "📁 Download folder not configured.".yellow());
 
-    let folder_path = crate::prompt::Prompter::prompt_download_folder()?;
+    let folder_path = Prompter::prompt_download_folder()?;
 
     let mut config = Config::load().unwrap_or_default();
     config.download_folder = folder_path.clone();
@@ -135,6 +137,3 @@ impl Default for Config {
     }
 }
 
-#[cfg(test)]
-#[path = "config_tests.rs"]
-mod tests;

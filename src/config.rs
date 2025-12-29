@@ -1,5 +1,6 @@
 use colored::*;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -69,6 +70,17 @@ impl Config {
 
     fn get_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
         Ok(Self::get_config_dir()?.join("config.toml"))
+    }
+
+    pub fn get_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+        let config_dir = Self::get_config_dir()?;
+        let data_dir = config_dir.join("data");
+        fs::create_dir_all(&data_dir)?;
+        Ok(data_dir)
+    }
+
+    pub fn get_undo_log_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+        Ok(Self::get_data_dir()?.join("undo_log.json"))
     }
 }
 

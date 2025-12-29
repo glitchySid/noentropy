@@ -2,11 +2,12 @@ use clap::Parser;
 use colored::*;
 use futures::future::join_all;
 use noentropy::cache::Cache;
-use noentropy::config;
+use noentropy::config::{self, Config};
 use noentropy::files::{FileBatch, OrganizationPlan, execute_move};
 use noentropy::gemini::GeminiClient;
 use noentropy::gemini_errors::GeminiError;
-use std::path::Path;
+use noentropy::undo::UndoLog;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Parser, Debug)]
@@ -24,20 +25,55 @@ struct Args {
     max_concurrent: usize,
     #[arg(long, help = "Recursively searches files in subdirectory")]
     recursive: bool,
+    #[arg(long, help = "Undo the last file organization")]
+    undo: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    if args.undo {
+        let download_path = config::get_or_prompt_download_folder()?;
+        let undo_log_path = Config::get_undo_log_path()?;
+
+        if !undo_log_path.exists() {
+            println!("{}", "No undo log found. Nothing to undo.".yellow());
+            return Ok(());
+        }
+
+        let mut undo_log = UndoLog::load_or_create(&undo_log_path);
+
+        if !undo_log.has_completed_moves() {
+            println!("{}", "No completed moves to undo.".yellow());
+            return Ok(());
+        }
+
+        noentropy::files::undo_moves(&download_path, &mut undo_log, args.dry_run)?;
+
+        if let Err(e) = undo_log.save(&undo_log_path) {
+            eprintln!("Warning: Failed to save undo log: {}", e);
+        }
+
+        return Ok(());
+    }
+
     let api_key = config::get_or_prompt_api_key()?;
     let download_path = config::get_or_prompt_download_folder()?;
 
     let client: GeminiClient = GeminiClient::new(api_key);
 
-    let cache_path = Path::new(".noentropy_cache.json");
-    let mut cache = Cache::load_or_create(cache_path);
+    let mut cache_path = std::env::var("HOME")
+        .map(PathBuf::from)
+        .expect("No Home found");
+    cache_path.push(".config/noentropy/data/.noentropy_cache.json");
+    let mut cache = Cache::load_or_create(cache_path.as_path());
 
     cache.cleanup_old_entries(7 * 24 * 60 * 60);
+
+    let undo_log_path = Config::get_undo_log_path()?;
+    let mut undo_log = UndoLog::load_or_create(&undo_log_path);
+    undo_log.cleanup_old_entries(30 * 24 * 60 * 60);
 
     let batch = FileBatch::from_path(download_path.clone(), args.recursive);
 
@@ -110,12 +146,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.dry_run {
         println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
     } else {
-        execute_move(&download_path, plan);
+        execute_move(&download_path, plan, Some(&mut undo_log));
     }
     println!("{}", "Done!".green().bold());
 
-    if let Err(e) = cache.save(cache_path) {
+    if let Err(e) = cache.save(cache_path.as_path()) {
         eprintln!("Warning: Failed to save cache: {}", e);
+    }
+
+    if let Err(e) = undo_log.save(&undo_log_path) {
+        eprintln!("Warning: Failed to save undo log: {}", e);
     }
 
     Ok(())

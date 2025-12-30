@@ -2,6 +2,7 @@ use crate::models::OrganizationPlan;
 use crate::storage::UndoLog;
 use colored::*;
 use std::io;
+use std::path::MAIN_SEPARATOR;
 use std::{ffi::OsStr, fs, path::Path};
 
 pub fn execute_move(base_path: &Path, plan: OrganizationPlan, mut undo_log: Option<&mut UndoLog>) {
@@ -15,10 +16,18 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan, mut undo_log: Opti
     for item in &plan.files {
         let mut target_display = format!("{}", item.category.green());
         if !item.sub_category.is_empty() {
-            target_display = format!("{}/{}", target_display, item.sub_category.blue());
+            target_display = format!(
+                "{}{}{}",
+                target_display,
+                MAIN_SEPARATOR,
+                item.sub_category.blue()
+            );
         }
 
-        println!("Plan: {} -> {}/", item.filename, target_display);
+        println!(
+            "Plan: {} -> {}{}",
+            item.filename, target_display, MAIN_SEPARATOR
+        );
     }
 
     eprint!("\nDo you want to apply these changes? [y/N]: ");
@@ -74,12 +83,18 @@ pub fn execute_move(base_path: &Path, plan: OrganizationPlan, mut undo_log: Opti
                 match move_file_cross_platform(&source, &target) {
                     Ok(_) => {
                         if item.sub_category.is_empty() {
-                            println!("Moved: {} -> {}/", item.filename, item.category.green());
-                        } else {
                             println!(
-                                "Moved: {} -> {}/{}",
+                                "Moved: {} -> {}{}",
                                 item.filename,
                                 item.category.green(),
+                                MAIN_SEPARATOR
+                            );
+                        } else {
+                            println!(
+                                "Moved: {} -> {}{}{}",
+                                item.filename,
+                                item.category.green(),
+                                MAIN_SEPARATOR,
                                 item.sub_category.blue()
                             );
                         }

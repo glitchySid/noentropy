@@ -96,11 +96,9 @@ pub async fn handle_organization(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client: GeminiClient = GeminiClient::new(api_key);
 
-    let mut cache_path = std::env::var("HOME")
-        .map(PathBuf::from)
-        .expect("No Home found");
-    cache_path.push(".config/noentropy/data/.noentropy_cache.json");
-    let mut cache = Cache::load_or_create(cache_path.as_path());
+    let data_dir = Config::get_data_dir()?;
+    let cache_path = data_dir.join(".noentropy_cache.json");
+    let mut cache = Cache::load_or_create(&cache_path);
 
     cache.cleanup_old_entries(7 * 24 * 60 * 60);
 

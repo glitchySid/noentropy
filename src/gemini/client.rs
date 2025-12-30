@@ -9,8 +9,9 @@ use std::path::Path;
 use std::time::Duration;
 
 const DEFAULT_MODEL: &str = "gemini-3-flash-preview";
-const DEFAULT_TIMEOUT_SECS: u64 = 30;
+const DEFAULT_TIMEOUT_SECS: u64 = 120;
 const MAX_RETRIES: u32 = 3;
+const BATCH_SIZE: usize = 50;
 
 pub struct GeminiClient {
     api_key: String,
@@ -87,6 +88,65 @@ impl GeminiClient {
         }
 
         Ok(plan)
+    }
+
+    /// Organizes files in batches to handle large file lists efficiently.
+    ///
+    /// When the number of files exceeds BATCH_SIZE, splits them into smaller
+    /// chunks to avoid API timeout and payload size issues. Each batch is
+    /// processed sequentially with progress feedback.
+    ///
+    /// # Arguments
+    /// * `filenames` - Vector of filenames to organize
+    /// * `cache` - Optional cache for storing/retrieving results
+    /// * `base_path` - Optional base path for cache keys
+    ///
+    /// # Returns
+    /// A combined `OrganizationPlan` with all files categorized
+    pub async fn organize_files_in_batches(
+        &self,
+        filenames: Vec<String>,
+        mut cache: Option<&mut Cache>,
+        base_path: Option<&Path>,
+    ) -> Result<OrganizationPlan, GeminiError> {
+        // No batching needed for small file lists
+        if filenames.len() <= BATCH_SIZE {
+            return self
+                .organize_files_with_cache(filenames, cache, base_path)
+                .await;
+        }
+
+        let total_files = filenames.len();
+        let batches: Vec<Vec<String>> = filenames
+            .chunks(BATCH_SIZE)
+            .map(|chunk| chunk.to_vec())
+            .collect();
+        let total_batches = batches.len();
+
+        println!(
+            "Processing {} files in {} batches...",
+            total_files, total_batches
+        );
+
+        let mut all_files = Vec::with_capacity(total_files);
+
+        for (batch_index, batch) in batches.into_iter().enumerate() {
+            let batch_num = batch_index + 1;
+            println!(
+                "Processing batch {}/{} ({} files)...",
+                batch_num,
+                total_batches,
+                batch.len()
+            );
+
+            let plan = self
+                .organize_files_with_cache(batch, cache.as_deref_mut(), base_path)
+                .await?;
+
+            all_files.extend(plan.files);
+        }
+
+        Ok(OrganizationPlan { files: all_files })
     }
 
     fn build_url(&self) -> String {

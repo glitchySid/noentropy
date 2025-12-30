@@ -439,21 +439,60 @@ cargo check
 
 ## Project Structure
 
+NoEntropy follows a clean modular architecture for better maintainability and testability:
+
 ```
 noentropy/
+├── .github/
+│   └── workflows/
+│       └── rust.yml              # CI/CD workflow
 ├── src/
-│   ├── main.rs           # Entry point and CLI handling
-│   ├── lib.rs            # Library exports
-│   ├── config.rs         # Configuration management
-│   ├── gemini.rs         # Gemini API client
-│   ├── gemini_errors.rs  # Error handling
-│   ├── cache.rs          # Caching system
-│   ├── files.rs          # File operations
-│   └── undo.rs          # Undo functionality
-├── Cargo.toml            # Dependencies
-├── config.example.toml    # Configuration template
-└── README.md             # This file
+│   ├── cli/
+│   │   ├── mod.rs                # CLI module exports
+│   │   ├── args.rs               # Command-line argument definitions
+│   │   └── orchestrator.rs       # Organization & undo orchestration
+│   ├── files/
+│   │   ├── mod.rs                # File module exports
+│   │   ├── batch.rs              # File batch processing
+│   │   ├── detector.rs           # File type detection
+│   │   ├── mover.rs              # File moving operations
+│   │   └── undo.rs               # Undo file operations
+│   ├── gemini/
+│   │   ├── mod.rs                # Gemini API module exports
+│   │   ├── client.rs             # Gemini API client
+│   │   ├── errors.rs             # Gemini error handling
+│   │   ├── prompt.rs             # AI prompt construction
+│   │   └── types.rs              # Gemini API types
+│   ├── models/
+│   │   ├── mod.rs                # Data models exports
+│   │   ├── metadata.rs           # File metadata structures
+│   │   ├── move_record.rs        # File move tracking
+│   │   └── organization.rs       # Organization plan structures
+│   ├── settings/
+│   │   ├── mod.rs                # Settings module exports
+│   │   ├── config.rs             # Configuration management
+│   │   ├── prompt.rs             # Interactive configuration prompts
+│   │   └── tests.rs              # Settings tests
+│   ├── storage/
+│   │   ├── mod.rs                # Storage module exports
+│   │   ├── cache.rs              # Caching system
+│   │   └── undo_log.rs           # Undo log management
+│   ├── main.rs                   # Application entry point
+│   └── lib.rs                    # Library exports
+├── Cargo.toml                    # Dependencies and project metadata
+├── Cargo.lock                    # Dependency lock file
+├── config.example.toml           # Configuration template
+└── README.md                     # This file
 ```
+
+### Module Overview
+
+- **cli/** - Command-line interface and orchestration logic for organizing and undoing operations
+- **files/** - File detection, batching, moving, and undo operations with concurrent processing
+- **gemini/** - Google Gemini API integration with retry logic and intelligent prompt engineering
+- **models/** - Core data structures for file metadata, move records, and organization plans
+- **settings/** - Configuration management with interactive prompts and XDG directory support
+- **storage/** - Persistent data layer for caching API responses and tracking undo history
 
 ## Future Enhancements
 

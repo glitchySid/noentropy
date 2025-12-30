@@ -121,7 +121,7 @@ pub async fn handle_organization(
     );
 
     let mut plan: OrganizationPlan = match client
-        .organize_files_with_cache(batch.filenames, Some(&mut cache), Some(&download_path))
+        .organize_files_in_batches(batch.filenames, Some(&mut cache), Some(&download_path))
         .await
     {
         Ok(plan) => plan,

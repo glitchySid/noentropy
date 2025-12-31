@@ -1,3 +1,4 @@
+use crate::settings::config::default_categories;
 use crate::settings::*;
 use std::path::Path;
 use std::path::PathBuf;
@@ -7,6 +8,7 @@ fn test_config_serialization() {
     let config = Config {
         api_key: "test_key_12345".to_string(),
         download_folder: PathBuf::from("/test/path"),
+        categories: default_categories(),
     };
 
     let toml_str = toml::to_string_pretty(&config).unwrap();
@@ -15,6 +17,7 @@ fn test_config_serialization() {
     let deserialized: Config = toml::from_str(&toml_str).unwrap();
     assert_eq!(config.api_key, deserialized.api_key);
     assert_eq!(config.download_folder, deserialized.download_folder);
+    assert_eq!(config.categories, deserialized.categories);
 }
 
 #[test]
@@ -83,6 +86,7 @@ fn test_config_empty_api_key_error() {
     let config = Config {
         api_key: String::new(),
         download_folder: PathBuf::from("/test/path"),
+        categories: default_categories(),
     };
 
     assert!(config.api_key.is_empty());

@@ -29,12 +29,13 @@ impl PromptBuilder {
         }
     }
 
-    pub fn build_categorization_prompt(&self) -> String {
+    pub fn build_categorization_prompt(&self, categories: &[String]) -> String {
+        let categories_str = categories.join("', '");
         format!(
             "I have these files in my Downloads folder: [{}]. \
-             Categorize them into these folders: 'Images', 'Documents', 'Installers', 'Music', 'Archives', 'Code', 'Misc'. \
+             Categorize them into these folders: '{}'. \
              Return ONLY a JSON object with this structure: {{ 'files': [ {{ 'filename': 'name', 'category': 'folder' }} ] }}",
-            self.file_list
+            self.file_list, categories_str
         )
     }
 

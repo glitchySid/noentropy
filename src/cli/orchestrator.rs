@@ -91,10 +91,9 @@ pub fn handle_gemini_error(error: crate::gemini::GeminiError) {
 
 pub async fn handle_organization(
     args: Args,
-    api_key: String,
-    download_path: PathBuf,
+    config: Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let client: GeminiClient = GeminiClient::new(api_key);
+    let client: GeminiClient = GeminiClient::new(config.api_key, config.categories.clone());
 
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
@@ -106,6 +105,7 @@ pub async fn handle_organization(
     let mut undo_log = UndoLog::load_or_create(&undo_log_path);
     undo_log.cleanup_old_entries(30 * 24 * 60 * 60);
 
+    let download_path = config.download_folder;
     let batch = FileBatch::from_path(download_path.clone(), args.recursive);
 
     if batch.filenames.is_empty() {

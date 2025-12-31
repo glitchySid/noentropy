@@ -7,3 +7,8 @@ api_key = "your_api_key_here"
 
 # Path to folder to organize (e.g., ~/Downloads)
 download_folder = "/path/to/your/downloads"
+
+# Optional: Custom categories for file organization
+# If not specified, uses default categories: Images, Documents, Installers, Music, Archives, Code, Misc
+# Uncomment and customize the list below to use your own categories:
+# categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]

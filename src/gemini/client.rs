@@ -21,14 +21,15 @@ pub struct GeminiClient {
     model: String,
     #[allow(dead_code)]
     timeout: Duration,
+    categories: Vec<String>,
 }
 
 impl GeminiClient {
-    pub fn new(api_key: String) -> Self {
-        Self::with_model(api_key, DEFAULT_MODEL.to_string())
+    pub fn new(api_key: String, categories: Vec<String>) -> Self {
+        Self::with_model(api_key, DEFAULT_MODEL.to_string(), categories)
     }
 
-    pub fn with_model(api_key: String, model: String) -> Self {
+    pub fn with_model(api_key: String, model: String, categories: Vec<String>) -> Self {
         let timeout = Duration::from_secs(DEFAULT_TIMEOUT_SECS);
         let client = Self::build_client(timeout);
         let base_url = Self::build_base_url(&model);
@@ -39,6 +40,7 @@ impl GeminiClient {
             base_url,
             model,
             timeout,
+            categories,
         }
     }
 
@@ -77,7 +79,8 @@ impl GeminiClient {
             return Ok(cached_response);
         }
 
-        let prompt = PromptBuilder::new(filenames.clone()).build_categorization_prompt();
+        let prompt =
+            PromptBuilder::new(filenames.clone()).build_categorization_prompt(&self.categories);
         let request_body = self.build_categorization_request(&prompt);
 
         let res = self.send_request_with_retry(&url, &request_body).await?;

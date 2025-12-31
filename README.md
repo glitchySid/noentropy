@@ -21,6 +21,7 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 ## Features
 
 - **🧠 AI-Powered Categorization** - Uses Google Gemini API for intelligent file sorting
+- **🎨 Custom Categories** - Define your own categories for personalized organization
 - **📁 Automatic Sub-Folders** - Creates relevant sub-folders based on file content analysis
 - **💨 Smart Caching** - Minimizes API calls with metadata-based caching (7-day expiry)
 - **⚡ Concurrent Processing** - Parallel file inspection with configurable limits
@@ -83,12 +84,16 @@ NoEntropy stores configuration in `~/.config/noentropy/config.toml` following XD
 ```toml
 api_key = "AIzaSyDTEhAq414SHY094A5oy5lxNA0vhbY1O3k"
 download_folder = "/home/user/Downloads"
+
+# Optional: Custom categories for file organization
+categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
 ```
 
-| Setting | Description | Example |
-|---------|-------------|---------|
-| `api_key` | Your Google Gemini API key | `AIzaSy...` |
-| `download_folder` | Path to folder to organize | `/home/user/Downloads` |
+| Setting | Description | Example | Required |
+|---------|-------------|---------|----------|
+| `api_key` | Your Google Gemini API key | `AIzaSy...` | Yes |
+| `download_folder` | Path to folder to organize | `/home/user/Downloads` | Yes |
+| `categories` | Custom categories for organization | `["Work", "Personal", "School"]` | No |
 
 ### Getting a Gemini API Key
 
@@ -106,6 +111,89 @@ NoEntropy provides an interactive setup on first run:
 - **Both missing?** → You'll be guided through complete setup
 
 Configuration is automatically saved to `~/.config/noentropy/config.toml` after interactive setup.
+
+### Custom Categories
+
+NoEntropy allows you to define your own custom categories instead of using the default ones. This is perfect for organizing files based on your specific workflow or needs.
+
+#### Default Categories
+
+If you don't specify custom categories, NoEntropy uses these defaults:
+- **Images** - PNG, JPG, GIF, SVG, etc.
+- **Documents** - PDF, DOC, DOCX, TXT, MD, etc.
+- **Installers** - EXE, DMG, APP, PKG, etc.
+- **Music** - MP3, WAV, FLAC, M4A, etc.
+- **Archives** - ZIP, TAR, RAR, 7Z, etc.
+- **Code** - Source code and configuration files
+- **Misc** - Everything else
+
+#### Using Custom Categories
+
+To use custom categories, add a `categories` array to your `config.toml`:
+
+```toml
+api_key = "your_api_key_here"
+download_folder = "/home/user/Downloads"
+categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
+```
+
+**Examples of Custom Category Sets:**
+
+**For Students:**
+```toml
+categories = ["Courses", "Assignments", "Research", "Personal", "Textbooks", "Media", "Misc"]
+```
+
+**For Professionals:**
+```toml
+categories = ["Client Work", "Internal", "Invoices", "Contracts", "Marketing", "Resources", "Misc"]
+```
+
+**For Creatives:**
+```toml
+categories = ["Projects", "Assets", "References", "Client Files", "Portfolio", "Tools", "Misc"]
+```
+
+**For Personal Use:**
+```toml
+categories = ["Family", "Finance", "Health", "Home", "Travel", "Hobbies", "Misc"]
+```
+
+#### Tips for Custom Categories
+
+1. **Keep it simple** - Use 5-10 categories for best results
+2. **Be specific** - More descriptive names help the AI understand better
+3. **Include "Misc"** - Always have a catch-all category for unclear files
+4. **Think workflow** - Organize based on how you actually use files
+5. **Test first** - Use `--dry-run` to preview categorization before committing
+
+#### How It Works
+
+When you define custom categories:
+1. NoEntropy sends your file list to the Gemini AI
+2. The AI is instructed to categorize files into your custom categories
+3. Files are organized into folders matching your category names
+4. Sub-folders are still created automatically for better organization
+
+**Example Output with Custom Categories:**
+```
+Downloads/
+├── Work/
+│   ├── Reports/
+│   │   └── Q4-Report.pdf
+│   └── Presentations/
+│       └── Client-Deck.pptx
+├── Personal/
+│   ├── Photos/
+│   │   └── vacation.jpg
+│   └── Documents/
+│       └── resume.pdf
+└── School/
+    ├── Assignments/
+    │   └── homework.docx
+    └── Notes/
+        └── lecture-notes.pdf
+```
 
 ## Usage
 
@@ -498,7 +586,7 @@ noentropy/
 
 Based on community feedback, we're planning:
 
-- [ ] **Custom Categories** - Define custom categories in `config.toml`
+- [x] **Custom Categories** - Define custom categories in `config.toml`
 - [x] **Recursive Mode** - Organize files in subdirectories with `--recursive` flag
 - [x] **Undo Functionality** - Revert file organization changes
 - [ ] **Custom Models** - Support for other AI providers

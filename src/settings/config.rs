@@ -5,10 +5,24 @@ use std::path::PathBuf;
 
 use super::prompt::Prompter;
 
+pub fn default_categories() -> Vec<String> {
+    vec![
+        "Images".to_string(),
+        "Documents".to_string(),
+        "Installers".to_string(),
+        "Music".to_string(),
+        "Archives".to_string(),
+        "Code".to_string(),
+        "Misc".to_string(),
+    ]
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub api_key: String,
     pub download_folder: PathBuf,
+    #[serde(default = "default_categories")]
+    pub categories: Vec<String>,
 }
 
 impl Config {
@@ -128,11 +142,41 @@ pub fn get_or_prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Er
     Ok(folder_path)
 }
 
+pub fn get_or_prompt_config() -> Result<Config, Box<dyn std::error::Error>> {
+    let mut config = Config::load().unwrap_or_default();
+    let mut needs_save = false;
+
+    // Check API key
+    if config.api_key.is_empty() {
+        println!();
+        println!("{}", "🔑 NoEntropy Configuration".bold().cyan());
+        println!("{}", "─────────────────────────────".cyan());
+        config.api_key = Prompter::prompt_api_key()?;
+        needs_save = true;
+    }
+
+    // Check download folder
+    if config.download_folder.as_os_str().is_empty() || !config.download_folder.exists() {
+        println!();
+        println!("{}", "📁 Download folder not configured.".yellow());
+        config.download_folder = Prompter::prompt_download_folder()?;
+        needs_save = true;
+    }
+
+    if needs_save {
+        config.save()?;
+        println!();
+    }
+
+    Ok(config)
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
             api_key: String::new(),
             download_folder: PathBuf::new(),
+            categories: default_categories(),
         }
     }
 }

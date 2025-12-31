@@ -19,4 +19,6 @@ pub struct Args {
 
     #[arg(long, help = "Undo the last file organization")]
     pub undo: bool,
+    #[arg(long, help = "Change api key")]
+    pub change_key: bool,
 }

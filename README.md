@@ -236,6 +236,13 @@ Revert the last file organization:
 cargo run --release -- --undo
 ```
 
+### Change API key
+
+To change gemini API key:
+```
+  
+```
+
 Preview what would be undone without actually reversing changes:
 
 ```bash
@@ -267,6 +274,7 @@ This scans all subdirectories within your download folder and organizes files fr
 | `--max-concurrent` | `-m` | `5` | Maximum concurrent API requests |
 | `--recursive` | None | `false` | Recursively search files in subdirectories |
 | `--undo` | None | `false` | Undo the last file organization |
+| `--change-key` |  `false` | Changes Api Key |
 | `--help` | `-h` | - | Show help message |
 
 ## How It Works

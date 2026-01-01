@@ -10,14 +10,6 @@
 
 NoEntropy is a smart command-line tool that organizes your cluttered Downloads folder automatically. It uses Google's Gemini AI to analyze files, understand their content, and categorize them into organized folder structures. Say goodbye to manually sorting through hundreds of downloads!
 
-### Use Cases
-
-- 📂 Organize a messy Downloads folder
-- 🤖 Auto-categorize downloaded files by type and content
-- 🔍 Smart sub-folder creation based on file content
-- 🚀 Batch file organization without manual effort
-- 💾 Reduce clutter and improve file system organization
-
 ## Features
 
 - **🧠 AI-Powered Categorization** - Uses Google Gemini API for intelligent file sorting
@@ -26,589 +18,186 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 - **💨 Smart Caching** - Minimizes API calls with metadata-based caching (7-day expiry)
 - **⚡ Concurrent Processing** - Parallel file inspection with configurable limits
 - **👀 Dry-Run Mode** - Preview changes without moving any files
-- **🔄 Retry Logic** - Exponential backoff for resilient API handling
 - **📝 Text File Support** - Inspects 30+ text formats for better categorization
 - **✅ Interactive Confirmation** - Review organization plan before execution
-- **🎯 Configurable** - Adjust concurrency limits and model settings
 - **↩️ Undo Support** - Revert file organization changes if needed
 
-## Prerequisites
+## Quick Start
 
-- **Rust 2024 Edition** or later
-- **Google Gemini API Key** - Get one at [https://ai.google.dev/](https://ai.google.dev/)
-- A folder full of unorganized files to clean up!
+### Installation
 
-## Installation
+**Option 1: Download Pre-built Binary**
 
-1. **Download Binary**
-    Download binary for your operating system(Windows, Linux or Mac)
-    ```bash
-    https://github.com/glitchySid/noentropy/releases
-    ```
-2. **Give Permisson(For Linux/Mac)**
-    ```bash
-      chmod +x binaryfilename
-    ```
+Download the binary for your operating system from [releases](https://github.com/glitchySid/noentropy/releases):
 
-## Run Locally
+```bash
+# Linux/macOS: Give execute permissions
+chmod +x noentropy
 
-1. **Clone repository**
-   ```bash
-   git clone https://github.com/glitchySid/noentropy.git
-   cd noentropy
-   ```
-
-2. **Build the application**
-   ```bash
-   cargo build --release
-   ```
-
-3. **Run the application**
-   On first run, NoEntropy will guide you through interactive setup:
-   ```bash
-   ./target/release/noentropy
-   ```
-
-   Or manually create config file at `~/.config/noentropy/config.toml`:
-   ```bash
-   cp config.example.toml ~/.config/noentropy/config.toml
-   nano ~/.config/noentropy/config.toml
-   ```
-
-## Configuration
-
-NoEntropy stores configuration in `~/.config/noentropy/config.toml` following XDG Base Directory specifications.
-
-### Configuration File Format
-
-```toml
-api_key = "AIzaSyDTEhAq414SHY094A5oy5lxNA0vhbY1O3k"
-download_folder = "/home/user/Downloads"
-
-# Optional: Custom categories for file organization
-categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
+# Run NoEntropy
+./noentropy
 ```
 
-| Setting | Description | Example | Required |
-|---------|-------------|---------|----------|
-| `api_key` | Your Google Gemini API key | `AIzaSy...` | Yes |
-| `download_folder` | Path to folder to organize | `/home/user/Downloads` | Yes |
-| `categories` | Custom categories for organization | `["Work", "Personal", "School"]` | No |
+**Option 2: Build from Source**
 
-### Getting a Gemini API Key
+```bash
+# Clone repository
+git clone https://github.com/glitchySid/noentropy.git
+cd noentropy
 
-1. Visit [Google AI Studio](https://ai.google.dev/)
-2. Sign in with your Google account
-3. Create a new API key
-4. Copy the key to your configuration file
-
-### Interactive Setup
-
-NoEntropy provides an interactive setup on first run:
-
-- **Missing API key?** → You'll be prompted to enter it
-- **Missing download folder?** → You'll be prompted to specify it (with default suggestion)
-- **Both missing?** → You'll be guided through complete setup
-
-Configuration is automatically saved to `~/.config/noentropy/config.toml` after interactive setup.
-
-### Custom Categories
-
-NoEntropy allows you to define your own custom categories instead of using the default ones. This is perfect for organizing files based on your specific workflow or needs.
-
-#### Default Categories
-
-If you don't specify custom categories, NoEntropy uses these defaults:
-- **Images** - PNG, JPG, GIF, SVG, etc.
-- **Documents** - PDF, DOC, DOCX, TXT, MD, etc.
-- **Installers** - EXE, DMG, APP, PKG, etc.
-- **Music** - MP3, WAV, FLAC, M4A, etc.
-- **Archives** - ZIP, TAR, RAR, 7Z, etc.
-- **Code** - Source code and configuration files
-- **Misc** - Everything else
-
-#### Using Custom Categories
-
-To use custom categories, add a `categories` array to your `config.toml`:
-
-```toml
-api_key = "your_api_key_here"
-download_folder = "/home/user/Downloads"
-categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
+# Build and run
+cargo build --release
+./target/release/noentropy
 ```
 
-**Examples of Custom Category Sets:**
+### First Run
 
-**For Students:**
-```toml
-categories = ["Courses", "Assignments", "Research", "Personal", "Textbooks", "Media", "Misc"]
-```
-
-**For Professionals:**
-```toml
-categories = ["Client Work", "Internal", "Invoices", "Contracts", "Marketing", "Resources", "Misc"]
-```
-
-**For Creatives:**
-```toml
-categories = ["Projects", "Assets", "References", "Client Files", "Portfolio", "Tools", "Misc"]
-```
-
-**For Personal Use:**
-```toml
-categories = ["Family", "Finance", "Health", "Home", "Travel", "Hobbies", "Misc"]
-```
-
-#### Tips for Custom Categories
-
-1. **Keep it simple** - Use 5-10 categories for best results
-2. **Be specific** - More descriptive names help the AI understand better
-3. **Include "Misc"** - Always have a catch-all category for unclear files
-4. **Think workflow** - Organize based on how you actually use files
-5. **Test first** - Use `--dry-run` to preview categorization before committing
-
-#### How It Works
-
-When you define custom categories:
-1. NoEntropy sends your file list to the Gemini AI
-2. The AI is instructed to categorize files into your custom categories
-3. Files are organized into folders matching your category names
-4. Sub-folders are still created automatically for better organization
-
-**Example Output with Custom Categories:**
-```
-Downloads/
-├── Work/
-│   ├── Reports/
-│   │   └── Q4-Report.pdf
-│   └── Presentations/
-│       └── Client-Deck.pptx
-├── Personal/
-│   ├── Photos/
-│   │   └── vacation.jpg
-│   └── Documents/
-│       └── resume.pdf
-└── School/
-    ├── Assignments/
-    │   └── homework.docx
-    └── Notes/
-        └── lecture-notes.pdf
-```
-
-## Usage
+On first run, NoEntropy will guide you through an interactive setup to configure your API key and download folder. That's it!
 
 ### Basic Usage
 
-Organize your Downloads folder with default settings:
+```bash
+# Organize your downloads folder
+./noentropy
+
+# Preview changes without moving files
+./noentropy --dry-run
+
+# Undo the last organization
+./noentropy --undo
+```
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Installation Guide](docs/INSTALLATION.md)** - Detailed installation instructions and setup
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Configure API key, folders, and custom categories
+- **[Usage Guide](docs/USAGE.md)** - Command-line options and usage examples
+- **[How It Works](docs/HOW_IT_WORKS.md)** - Architecture, caching, and internal processes
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Development Guide](docs/DEVELOPMENT.md)** - Project structure and development setup
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to NoEntropy
+
+## Example Output
 
 ```bash
-cargo run --release
-```
-
-### Dry-Run Mode
-
-Preview what would happen without moving any files:
-
-```bash
-cargo run --release -- --dry-run
-```
-
-### Custom Concurrency
-
-Adjust the number of concurrent API calls (default: 5):
-
-```bash
-cargo run --release -- --max-concurrent 10
-```
-
-### Combined Options
-
-Use multiple options together:
-```bash
-cargo run --release -- --dry-run --max-concurrent 3
-```
-
-### Undo Mode
-
-Revert the last file organization:
-
-```bash
-cargo run --release -- --undo
-```
-
-### Change API key
-
-To change gemini API key:
-```
-  
-```
-
-Preview what would be undone without actually reversing changes:
-
-```bash
-cargo run --release -- --undo --dry-run
-```
-
-The undo feature:
-- Tracks all file moves in `~/.config/noentropy/data/undo_log.json`
-- Shows a preview of files that will be restored before execution
-- Handles edge cases (missing files, conflicts, permission errors)
-- Automatically cleans up empty directories after undo
-- Keeps undo history for 30 days with auto-cleanup
-
-### Recursive Mode
-
-Organize files in subdirectories recursively:
-
-```bash
-cargo run --release -- --recursive
-```
-
-This scans all subdirectories within your download folder and organizes files from the entire directory tree, maintaining relative folder structure when creating categories.
-
-### Command-Line Options
-
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--dry-run` | `-d` | `false` | Preview changes without moving files |
-| `--max-concurrent` | `-m` | `5` | Maximum concurrent API requests |
-| `--recursive` | None | `false` | Recursively search files in subdirectories |
-| `--undo` | None | `false` | Undo the last file organization |
-| `--change-key` |  `false` | Changes Api Key |
-| `--help` | `-h` | - | Show help message |
-
-## How It Works
-
-NoEntropy follows a five-step process to organize your files:
-
-```
-┌─────────────────┐
-│  1. Scan Files  │ → Read all files in DOWNLOAD_FOLDER (and subdir if --recursive flag is used)
-└────────┬────────┘
-         ▼
-┌─────────────────────────┐
-│ 2. Initial Categorization │ → Ask Gemini to categorize by filename
-└────────┬────────────────┘
-         ▼
-┌──────────────────────┐
-│  3. Deep Inspection   │ → Read text files for sub-categories
-│     (Concurrent)      │   • Reads file content
-│                       │   • Asks AI for sub-folder
-└────────┬──────────────┘
-         ▼
-┌──────────────────────┐
-│  4. Preview & Confirm│ → Show organization plan
-│                       │   • Ask user approval
-└────────┬──────────────┘
-         ▼
-┌──────────────────────┐
-│   5. Execute Moves    │ → Move files to organized folders
-└──────────────────────┘
-```
-
-### Example Terminal Output
-
-```bash
-$ cargo run --release
+$ ./noentropy
 
 Found 47 files. Asking Gemini to organize...
 Gemini Plan received! Performing deep inspection...
-Reading content of report.pdf...
-Reading content of config.yaml...
-Reading content of script.py...
-Deep inspection complete! Moving Files.....
+Deep inspection complete!
 
 --- EXECUTION PLAN ---
 Plan: image1.png -> Images/
 Plan: document.pdf -> Documents/
-Plan: setup.exe -> Installers/
 Plan: notes.txt -> Documents/Notes/
 Plan: config.yaml -> Code/Config/
 Plan: script.py -> Code/Scripts/
+...
 
 Do you want to apply these changes? [y/N]: y
 
 --- MOVING FILES ---
 Moved: image1.png -> Images/
 Moved: document.pdf -> Documents/
-Moved: setup.exe -> Installers/
 Moved: notes.txt -> Documents/Notes/
-Moved: config.yaml -> Code/Config/
-Moved: script.py -> Code/Scripts/
+...
 
 Organization Complete!
 Files moved: 47, Errors: 0
 Done!
 ```
 
-#### Undo Example
+## Use Cases
 
-```bash
-$ cargo run --release -- --undo
+- 📂 Organize a messy Downloads folder
+- 🤖 Auto-categorize downloaded files by type and content
+- 🔍 Smart sub-folder creation based on file content
+- 🚀 Batch file organization without manual effort
+- 💾 Reduce clutter and improve file system organization
 
---- UNDO PREVIEW ---
-INFO: will restore 5 files:
-  Documents/report.pdf -> Downloads/
-  Documents/Notes/notes.txt -> Downloads/
-  Code/Config/config.yaml -> Downloads/
-  Code/Scripts/script.py -> Downloads/
-  Images/photo.png -> Downloads/
+## Key Features Explained
 
-Do you want to undo these changes? [y/N]: y
+### Custom Categories
 
---- UNDOING MOVES ---
-Restored: Documents/report.pdf -> Downloads/
-Restored: Documents/Notes/notes.txt -> Downloads/
-Restored: Code/Config/config.yaml -> Downloads/
-Restored: Code/Scripts/script.py -> Downloads/
-Restored: Images/photo.png -> Downloads/
+Define your own categories instead of using defaults:
 
-INFO: Removed empty directory: Documents/Notes
-INFO: Removed empty directory: Code/Config
-INFO: Removed empty directory: Code/Scripts
-
-UNDO COMPLETE!
-Files restored: 5, Skipped: 0, Failed: 0
-```
-
-## Supported Categories
-
-NoEntropy organizes files into these categories:
-
-| Category | Description |
-|----------|-------------|
-| **Images** | PNG, JPG, GIF, SVG, etc. |
-| **Documents** | PDF, DOC, DOCX, TXT, MD, etc. |
-| **Installers** | EXE, DMG, APP, PKG, etc. |
-| **Music** | MP3, WAV, FLAC, M4A, etc. |
-| **Archives** | ZIP, TAR, RAR, 7Z, etc. |
-| **Code** | Source code and configuration files |
-| **Misc** | Everything else |
-
-## Supported Text Formats
-
-NoEntropy can read and analyze the content of 30+ text file formats:
-
-```
-Source Code: rs, py, js, ts, jsx, tsx, java, go, c, cpp, h, hpp, rb, php, swift, kt, scala, lua, r, m
-Web/Config: html, css, json, xml, yaml, yml, toml, ini, cfg, conf
-Documentation: txt, md, sql, sh, bat, ps1, log
-```
-
-## Caching
-
-NoEntropy includes an intelligent caching system to minimize API calls:
-
-- **Location**: `.noentropy_cache.json` in project root
-- **Expiry**: 7 days (old entries auto-removed)
-- **Change Detection**: Uses file metadata (size + modification time) instead of full content hashing
-- **Max Entries**: 1000 entries (oldest evicted when limit reached)
-
-### How Caching Works
-
-1. **First Run**: Files are analyzed and categorized via Gemini API
-2. **Response Cached**: Organization plan saved with file metadata
-3. **Subsequent Runs**:
-   - Checks if files changed (size/modification time)
-   - If unchanged, uses cached categorization
-   - If changed, re-analyzes via API
-4. **Auto-Cleanup**: Removes cache entries older than 7 days
-
-## Undo Log
-
-NoEntropy tracks all file moves to enable undo functionality:
-
-- **Location**: `~/.config/noentropy/data/undo_log.json`
-- **Retention**: 30 days (old entries auto-removed)
-- **Max Entries**: 1000 entries (oldest evicted when limit reached)
-- **Status Tracking**: Completed, Undone, Failed states for each move
-- **Conflict Handling**: Skips files with conflicts and reports warnings
-
-### How Undo Works
-
-1. **During Organization**: Every file move is recorded with source/destination paths
-2. **Undo Execution**:
-   - Lists all completed moves to be reversed
-   - Shows preview of what will be restored
-   - Asks for user confirmation
-   - Moves files back to original locations
-   - Handles conflicts (source exists, destination missing)
-   - Cleans up empty directories left behind
-3. **Status Updates**: Marks successfully undone operations
-4. **Auto-Cleanup**: Removes undo log entries older than 30 days
-
-### Undo Safety Features
-
-- **Preview Before Action**: Always shows what will be undone before executing
-- **Conflict Detection**: Checks if source path already exists before restoring
-- **Missing File Handling**: Gracefully handles files that were deleted after move
-- **Partial Undo Support**: Continues even if some operations fail
-- **Dry-Run Mode**: Preview undo operations without executing them
-
-## Troubleshooting
-
-### "API key not configured"
-
-**Solution**: NoEntropy will prompt you for your API key on first run. Alternatively, manually create `~/.config/noentropy/config.toml`:
 ```toml
-api_key = "your_actual_api_key"
-download_folder = "/home/user/Downloads"
+# config.toml
+categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
 ```
 
-### "Download folder not configured"
+Perfect for organizing files based on your specific workflow. See the [Configuration Guide](docs/CONFIGURATION.md) for examples.
 
-**Solution**: NoEntropy will prompt you for the folder path on first run. Alternatively, manually add it to your config:
-```toml
-download_folder = "/path/to/your/Downloads"
-```
+### Smart Caching
 
-### "API rate limit exceeded"
+NoEntropy caches API responses for 7 days to minimize costs and improve performance. Files are only re-analyzed if they change (based on size and modification time).
 
-**Solution**: 
-- Wait a few minutes before trying again
-- Reduce `--max-concurrent` to limit API calls
-- Use caching to reduce redundant requests
+### Undo Functionality
 
-### "Network error"
+Made a mistake? Easily undo the last organization:
 
-**Solution**:
-- Check your internet connection
-- Verify Gemini API service is operational
-- Ensure firewall allows outbound HTTPS requests
-
-### "Failed to move file"
-
-**Solution**:
-- Check file permissions
-- Ensure destination folder is writable
-- Verify source files still exist
-
-### "Cache corrupted"
-
-**Solution**: Delete `.noentropy_cache.json` and run again. A new cache will be created.
-
-### "No completed moves to undo"
-
-**Solution**: This means there are no file moves that can be undone. Either:
-- No files have been organized yet
-- All previous moves have already been undone
-- The undo log was deleted
-
-### "Undo log not found"
-
-**Solution**: No undo history exists. Run organization first to create undo log, or check that `~/.config/noentropy/data/` directory exists.
-
-### "Skipping [file] - source already exists"
-
-**Solution**: A file already exists at the original location. The undo operation will skip it to prevent data loss. Manually check and resolve the conflict if needed.
-
-### "Failed to restore [file]"
-
-**Solution**: Check file permissions and ensure the file exists at the destination location. Other files will continue to be restored.
-
-## Development
-
-### Build in Debug Mode
 ```bash
-cargo build
+./noentropy --undo
 ```
 
-### Build in Release Mode
-```bash
-cargo build --release
-```
+All file moves are tracked for 30 days with full conflict detection and safety features.
 
-### Run Tests
-```bash
-cargo test
-```
+## Requirements
 
-### Run Clippy (Linting)
-```bash
-cargo clippy
-```
+- **Rust 2024 Edition** or later (if building from source)
+- **Google Gemini API Key** - Get one at [https://ai.google.dev/](https://ai.google.dev/)
 
-### Check Code
-```bash
-cargo check
-```
+## Command-Line Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--dry-run` | `-d` | Preview changes without moving files |
+| `--max-concurrent` | `-m` | Maximum concurrent API requests (default: 5) |
+| `--recursive` | - | Recursively search files in subdirectories |
+| `--undo` | - | Undo the last file organization |
+| `--change-key` | - | Change Gemini API key |
+| `--help` | `-h` | Show help message |
+
+See the [Usage Guide](docs/USAGE.md) for detailed examples and workflows.
 
 ## Project Structure
 
-NoEntropy follows a clean modular architecture for better maintainability and testability:
-
 ```
 noentropy/
-├── .github/
-│   └── workflows/
-│       └── rust.yml              # CI/CD workflow
+├── docs/               # Comprehensive documentation
 ├── src/
-│   ├── cli/
-│   │   ├── mod.rs                # CLI module exports
-│   │   ├── args.rs               # Command-line argument definitions
-│   │   └── orchestrator.rs       # Organization & undo orchestration
-│   ├── files/
-│   │   ├── mod.rs                # File module exports
-│   │   ├── batch.rs              # File batch processing
-│   │   ├── detector.rs           # File type detection
-│   │   ├── mover.rs              # File moving operations
-│   │   └── undo.rs               # Undo file operations
-│   ├── gemini/
-│   │   ├── mod.rs                # Gemini API module exports
-│   │   ├── client.rs             # Gemini API client
-│   │   ├── errors.rs             # Gemini error handling
-│   │   ├── prompt.rs             # AI prompt construction
-│   │   └── types.rs              # Gemini API types
-│   ├── models/
-│   │   ├── mod.rs                # Data models exports
-│   │   ├── metadata.rs           # File metadata structures
-│   │   ├── move_record.rs        # File move tracking
-│   │   └── organization.rs       # Organization plan structures
-│   ├── settings/
-│   │   ├── mod.rs                # Settings module exports
-│   │   ├── config.rs             # Configuration management
-│   │   ├── prompt.rs             # Interactive configuration prompts
-│   │   └── tests.rs              # Settings tests
-│   ├── storage/
-│   │   ├── mod.rs                # Storage module exports
-│   │   ├── cache.rs              # Caching system
-│   │   └── undo_log.rs           # Undo log management
-│   ├── main.rs                   # Application entry point
-│   └── lib.rs                    # Library exports
-├── Cargo.toml                    # Dependencies and project metadata
-├── Cargo.lock                    # Dependency lock file
-├── config.example.toml           # Configuration template
-└── README.md                     # This file
+│   ├── cli/            # Command-line interface
+│   ├── files/          # File operations and detection
+│   ├── gemini/         # AI integration
+│   ├── models/         # Data structures
+│   ├── settings/       # Configuration management
+│   └── storage/        # Caching and undo log
+├── Cargo.toml
+└── README.md
 ```
 
-### Module Overview
-
-- **cli/** - Command-line interface and orchestration logic for organizing and undoing operations
-- **files/** - File detection, batching, moving, and undo operations with concurrent processing
-- **gemini/** - Google Gemini API integration with retry logic and intelligent prompt engineering
-- **models/** - Core data structures for file metadata, move records, and organization plans
-- **settings/** - Configuration management with interactive prompts and XDG directory support
-- **storage/** - Persistent data layer for caching API responses and tracking undo history
-
-## Future Enhancements
-
-Based on community feedback, we're planning:
-
-- [x] **Custom Categories** - Define custom categories in `config.toml`
-- [x] **Recursive Mode** - Organize files in subdirectories with `--recursive` flag
-- [x] **Undo Functionality** - Revert file organization changes
-- [ ] **Custom Models** - Support for other AI providers
-- [ ] **GUI Version** - Desktop application for non-CLI users
+See the [Development Guide](docs/DEVELOPMENT.md) for detailed architecture information.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- How to report bugs
+- How to suggest features
+- Development setup
+- Code standards
+- Pull request process
+
+## Future Enhancements
+
+- [x] Custom Categories
+- [x] Recursive Mode
+- [x] Undo Functionality
+- [ ] Custom AI Models (OpenAI, Claude, etc.)
+- [ ] GUI Version
+- [ ] Watch Mode
 
 ## License
 
@@ -620,9 +209,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Powered by [Google Gemini API](https://ai.google.dev/)
 - Inspired by the endless struggle to keep Downloads folders organized
 
-## Show Your Support
+## Support
 
-⭐ Star this repository if you find it useful!
+- Check the [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for common issues
+- Browse [GitHub Issues](https://github.com/glitchySid/noentropy/issues) for known problems
+- Create a new issue for bugs or feature requests
+- Star this repository if you find it useful!
 
 ---
 

@@ -60,8 +60,17 @@ On first run, NoEntropy will guide you through an interactive setup to configure
 # Organize your downloads folder
 ./noentropy
 
+# Organize a specific directory (current directory)
+./noentropy .
+
+# Organize a specific directory (absolute path)
+./noentropy /path/to/folder
+
 # Preview changes without moving files
 ./noentropy --dry-run
+
+# Preview organization of current directory
+./noentropy . --dry-run
 
 # Undo the last organization
 ./noentropy --undo
@@ -109,6 +118,48 @@ Files moved: 47, Errors: 0
 Done!
 ```
 
+## Custom Path Support
+
+NoEntropy now supports organizing any directory, not just your configured Downloads folder!
+
+### Organize Any Directory
+
+```bash
+# Organize current directory
+./noentropy .
+
+# Organize specific folder
+./noentropy /path/to/folder
+
+# Organize with relative path
+./noentropy ./subfolder
+```
+
+### Features
+
+- **Path Validation**: Ensures the directory exists and is accessible
+- **Path Normalization**: Resolves `.`, `..`, and symlinks for consistency
+- **Full Compatibility**: Works with all existing options (`--dry-run`, `--recursive`, etc.)
+- **Security**: Prevents path traversal attacks and invalid paths
+
+### Use Cases
+
+- Quickly organize project directories
+- Clean up specific folders without changing configuration
+- Test organization on different directories
+- Organize documents, downloads, or any file collection
+
+```bash
+# Preview organization of current directory
+./noentropy . --dry-run
+
+# Organize project folder recursively
+./noentropy ./my-project --recursive
+
+# Undo organization in specific directory
+./noentropy /path/to/folder --undo
+```
+
 ## Use Cases
 
 - 📂 Organize a messy Downloads folder
@@ -153,6 +204,7 @@ All file moves are tracked for 30 days with full conflict detection and safety f
 
 | Option | Short | Description |
 |--------|-------|-------------|
+| `[PATH]` | - | Path to organize (defaults to configured download folder) |
 | `--dry-run` | `-d` | Preview changes without moving files |
 | `--max-concurrent` | `-m` | Maximum concurrent API requests (default: 5) |
 | `--recursive` | - | Recursively search files in subdirectories |

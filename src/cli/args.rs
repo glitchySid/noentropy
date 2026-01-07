@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -21,4 +22,17 @@ pub struct Args {
     pub undo: bool,
     #[arg(long, help = "Change api key")]
     pub change_key: bool,
+
+    /// Optional path to organize instead of the configured download folder
+    ///
+    /// If provided, this path will be used instead of the download folder
+    /// configured in the settings. The path will be validated and normalized
+    /// (resolving `.`, `..`, and symlinks) before use.
+    ///
+    /// Examples:
+    /// - `.` or `./` for current directory
+    /// - `/absolute/path/to/folder` for absolute paths
+    /// - `relative/path` for paths relative to current working directory
+    #[arg(help = "Path to organize (defaults to configured download folder)")]
+    pub path: Option<PathBuf>,
 }

@@ -6,8 +6,43 @@ use crate::settings::Config;
 use crate::storage::{Cache, UndoLog};
 use colored::*;
 use futures::future::join_all;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+/// Validates that a path exists and is a readable directory
+/// Returns the canonicalized path if validation succeeds
+fn validate_and_normalize_path(path: &PathBuf) -> Result<PathBuf, String> {
+    if !path.exists() {
+        return Err(format!("Path '{}' does not exist", path.display()));
+    }
+
+    if !path.is_dir() {
+        return Err(format!("Path '{}' is not a directory", path.display()));
+    }
+
+    // Check if we can read the directory
+    match fs::read_dir(path) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(format!(
+                "Cannot access directory '{}': {}",
+                path.display(),
+                e
+            ));
+        }
+    }
+
+    // Normalize the path to resolve ., .., and symlinks
+    match path.canonicalize() {
+        Ok(canonical) => Ok(canonical),
+        Err(e) => Err(format!(
+            "Failed to normalize path '{}': {}",
+            path.display(),
+            e
+        )),
+    }
+}
 
 pub fn handle_gemini_error(error: crate::gemini::GeminiError) {
     use colored::*;
@@ -99,14 +134,28 @@ pub async fn handle_organization(
     let cache_path = data_dir.join(".noentropy_cache.json");
     let mut cache = Cache::load_or_create(&cache_path);
 
-    cache.cleanup_old_entries(7 * 24 * 60 * 60);
+    const CACHE_RETENTION_SECONDS: u64 = 7 * 24 * 60 * 60; // 7 days
+    const UNDO_LOG_RETENTION_SECONDS: u64 = 30 * 24 * 60 * 60; // 30 days
+
+    cache.cleanup_old_entries(CACHE_RETENTION_SECONDS);
 
     let undo_log_path = Config::get_undo_log_path()?;
     let mut undo_log = UndoLog::load_or_create(&undo_log_path);
-    undo_log.cleanup_old_entries(30 * 24 * 60 * 60);
+    undo_log.cleanup_old_entries(UNDO_LOG_RETENTION_SECONDS);
 
-    let download_path = config.download_folder;
-    let batch = FileBatch::from_path(download_path.clone(), args.recursive);
+    // Use custom path if provided, otherwise fall back to configured download folder
+    let target_path = args.path.unwrap_or(config.download_folder);
+
+    // Validate and normalize the target path early
+    let target_path = match validate_and_normalize_path(&target_path) {
+        Ok(normalized) => normalized,
+        Err(e) => {
+            println!("{}", format!("ERROR: {}", e).red());
+            return Ok(());
+        }
+    };
+
+    let batch = FileBatch::from_path(target_path.clone(), args.recursive);
 
     if batch.filenames.is_empty() {
         println!("{}", "No files found to organize!".yellow());
@@ -119,7 +168,7 @@ pub async fn handle_organization(
     );
 
     let mut plan: OrganizationPlan = match client
-        .organize_files_in_batches(batch.filenames, Some(&mut cache), Some(&download_path))
+        .organize_files_in_batches(batch.filenames, Some(&mut cache), Some(&target_path))
         .await
     {
         Ok(plan) => plan,
@@ -180,7 +229,7 @@ pub async fn handle_organization(
     if args.dry_run {
         println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
     } else {
-        execute_move(&download_path, plan, Some(&mut undo_log));
+        execute_move(&target_path, plan, Some(&mut undo_log));
     }
     println!("{}", "Done!".green().bold());
 
@@ -213,10 +262,29 @@ pub async fn handle_undo(
         return Ok(());
     }
 
-    crate::files::undo_moves(&download_path, &mut undo_log, args.dry_run)?;
+    // Use custom path if provided, otherwise use the configured download path
+    let target_path = args.path.unwrap_or(download_path);
+
+    // Validate and normalize the target path early
+    let target_path = match validate_and_normalize_path(&target_path) {
+        Ok(normalized) => normalized,
+        Err(e) => {
+            println!("{}", format!("ERROR: {}", e).red());
+            return Ok(());
+        }
+    };
+
+    crate::files::undo_moves(&target_path, &mut undo_log, args.dry_run)?;
 
     if let Err(e) = undo_log.save(&undo_log_path) {
-        eprintln!("Warning: Failed to save undo log: {}", e);
+        eprintln!(
+            "{}", 
+            format!(
+                "WARNING: Failed to save undo log to '{}': {}. Your undo history may be incomplete.",
+                undo_log_path.display(),
+                e
+            ).yellow()
+        );
     }
 
     Ok(())

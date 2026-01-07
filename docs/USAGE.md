@@ -23,6 +23,7 @@ NoEntropy supports several command-line flags to customize its behavior:
 
 | Option | Short | Default | Description |
 |--------|-------|---------|-------------|
+| `[PATH]` | - | - | Path to organize (defaults to configured download folder) |
 | `--dry-run` | `-d` | `false` | Preview changes without moving files |
 | `--max-concurrent` | `-m` | `5` | Maximum concurrent API requests |
 | `--recursive` | - | `false` | Recursively search files in subdirectories |
@@ -31,6 +32,35 @@ NoEntropy supports several command-line flags to customize its behavior:
 | `--help` | `-h` | - | Show help message |
 
 ## Usage Examples
+
+### Custom Path Organization
+
+Organize any directory instead of the configured download folder:
+
+```bash
+./noentropy /path/to/folder
+```
+
+**Usage with current directory:**
+```bash
+./noentropy .
+```
+
+**Usage with relative path:**
+```bash
+./noentropy ./subfolder
+```
+
+**When to use:**
+- Organize directories other than your Downloads folder
+- Quickly organize the current working directory
+- Test organization on specific folders before applying to Downloads
+- Organize project directories, documents, or other file collections
+
+**Features:**
+- Path validation ensures the directory exists and is accessible
+- Path normalization resolves `.`, `..`, and symlinks for consistency
+- Works with all other options (`--dry-run`, `--recursive`, etc.)
 
 ### Dry-Run Mode
 
@@ -100,6 +130,28 @@ You can combine multiple options:
 
 ```bash
 ./noentropy --recursive --max-concurrent 10
+```
+
+**Custom path combinations:**
+
+```bash
+# Preview organization of current directory
+./noentropy . --dry-run
+```
+
+```bash
+# Organize specific folder recursively
+./noentropy /path/to/folder --recursive
+```
+
+```bash
+# Organize current directory with custom concurrency
+./noentropy . --max-concurrent 10
+```
+
+```bash
+# Undo organization in specific directory
+./noentropy /path/to/folder --undo
 ```
 
 ## Undo Operations

@@ -1,6 +1,6 @@
 use crate::models::{CacheEntry, FileMetadata, OrganizationPlan};
+use blake3::Hasher;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -141,13 +141,13 @@ impl Cache {
         let mut sorted_filenames = filenames.to_vec();
         sorted_filenames.sort();
 
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
         for filename in &sorted_filenames {
             hasher.update(filename.as_bytes());
             hasher.update(b"|");
         }
 
-        hex::encode(hasher.finalize())
+        hasher.finalize().to_hex().to_string()
     }
 
     fn get_file_metadata(file_path: &Path) -> Result<FileMetadata, Box<dyn std::error::Error>> {

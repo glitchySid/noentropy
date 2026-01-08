@@ -121,7 +121,7 @@ pub fn get_or_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
     Ok(api_key)
 }
 
-pub fn change_and_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
+pub fn change_and_prompt_api_key() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     println!("{}", "🔑 NoEntropy Configuration".bold().cyan());
     println!("{}", "─────────────────────────────".cyan());
@@ -129,11 +129,11 @@ pub fn change_and_prompt_api_key() -> Result<String, Box<dyn std::error::Error>>
     let api_key = Prompter::prompt_api_key()?;
 
     let mut config = Config::load().unwrap_or_default();
-    config.api_key = api_key.clone();
+    config.api_key = api_key;
     config.save()?;
 
     println!();
-    Ok(api_key)
+    Ok(())
 }
 
 pub fn get_or_prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Error>> {

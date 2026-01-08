@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 #[derive(Debug)]
@@ -8,7 +8,7 @@ pub struct FileBatch {
 }
 
 impl FileBatch {
-    pub fn from_path(root_path: PathBuf, recursive: bool) -> Self {
+    pub fn from_path(root_path: &Path, recursive: bool) -> Self {
         let mut filenames = Vec::new();
         let mut paths = Vec::new();
         let walker = if recursive {
@@ -45,6 +45,7 @@ impl FileBatch {
 mod tests {
     use super::*;
     use std::fs::{self, File};
+    use std::path::Path;
 
     #[test]
     fn test_file_batch_from_path() {
@@ -55,7 +56,7 @@ mod tests {
         File::create(dir_path.join("file2.rs")).unwrap();
         fs::create_dir(dir_path.join("subdir")).unwrap();
 
-        let batch = FileBatch::from_path(dir_path.to_path_buf(), false);
+        let batch = FileBatch::from_path(dir_path, false);
         assert_eq!(batch.count(), 2);
         assert!(batch.filenames.contains(&"file1.txt".to_string()));
         assert!(batch.filenames.contains(&"file2.rs".to_string()));
@@ -63,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_file_batch_from_path_nonexistent() {
-        let batch = FileBatch::from_path(PathBuf::from("/nonexistent/path"), false);
+        let batch = FileBatch::from_path(Path::new("/nonexistent/path"), false);
         assert_eq!(batch.count(), 0);
     }
 
@@ -75,7 +76,7 @@ mod tests {
         File::create(dir_path.join("file2.rs")).unwrap();
         fs::create_dir(dir_path.join("subdir")).unwrap();
         File::create(dir_path.join("subdir").join("file3.txt")).unwrap();
-        let batch = FileBatch::from_path(dir_path.to_path_buf(), false);
+        let batch = FileBatch::from_path(dir_path, false);
         assert_eq!(batch.count(), 2);
         assert!(batch.filenames.contains(&"file1.txt".to_string()));
         assert!(batch.filenames.contains(&"file2.rs".to_string()));
@@ -93,7 +94,7 @@ mod tests {
         File::create(dir_path.join("subdir1").join("nested").join("file3.md")).unwrap();
         fs::create_dir(dir_path.join("subdir2")).unwrap();
         File::create(dir_path.join("subdir2").join("file4.py")).unwrap();
-        let batch = FileBatch::from_path(dir_path.to_path_buf(), true);
+        let batch = FileBatch::from_path(dir_path, true);
         assert_eq!(batch.count(), 4);
         assert!(batch.filenames.contains(&"file1.txt".to_string()));
         assert!(batch.filenames.contains(&"subdir1/file2.rs".to_string()));

@@ -41,8 +41,12 @@ impl GeminiClient {
         }
     }
 
-    pub fn new(api_key: String, categories: Vec<String>) -> Self {
-        Self::with_model(api_key, DEFAULT_MODEL.to_string(), categories)
+    pub fn new(api_key: &str, categories: &[String]) -> Self {
+        Self::with_model(
+            api_key.to_string(),
+            DEFAULT_MODEL.to_string(),
+            categories.to_vec(),
+        )
     }
 
     pub fn with_model(api_key: String, model: String, categories: Vec<String>) -> Self {
@@ -102,8 +106,7 @@ impl GeminiClient {
             return Ok(cached_response.clone());
         }
 
-        let prompt =
-            PromptBuilder::new(filenames.clone()).build_categorization_prompt(&self.categories);
+        let prompt = PromptBuilder::new(&filenames).build_categorization_prompt(&self.categories);
         let request_body = self.build_categorization_request(&prompt);
 
         let res = self.send_request_with_retry(&url, &request_body).await?;

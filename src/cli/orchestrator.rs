@@ -42,7 +42,7 @@ pub async fn handle_organization(
         }
     };
 
-    let batch = FileBatch::from_path(target_path.clone(), args.recursive);
+    let batch = FileBatch::from_path(&target_path, args.recursive);
 
     if batch.filenames.is_empty() {
         println!("{}", "No files found to organize!".yellow());
@@ -56,7 +56,7 @@ pub async fn handle_organization(
         println!("{}", "Using offline mode (--offline flag).".cyan());
         true
     } else {
-        let client = GeminiClient::new(config.api_key.clone(), config.categories.clone());
+        let client = GeminiClient::new(&config.api_key, &config.categories);
         match client.check_connectivity().await {
             Ok(()) => false,
             Err(e) => {
@@ -71,7 +71,7 @@ pub async fn handle_organization(
     };
 
     let plan = if use_offline {
-        handle_offline_organization(&batch, &target_path, args.dry_run, &mut undo_log)?
+        handle_offline_organization(batch, &target_path, args.dry_run, &mut undo_log)?
     } else {
         handle_online_organization(
             &args,

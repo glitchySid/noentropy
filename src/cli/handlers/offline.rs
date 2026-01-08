@@ -6,14 +6,14 @@ use std::collections::HashMap;
 use std::path::Path;
 
 pub fn handle_offline_organization(
-    batch: &FileBatch,
+    batch: FileBatch,
     target_path: &Path,
     dry_run: bool,
     undo_log: &mut UndoLog,
 ) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
     println!("{}", "Categorizing files by extension...".cyan());
 
-    let result = categorize_files_offline(&batch.filenames);
+    let result = categorize_files_offline(batch.filenames);
 
     if result.plan.files.is_empty() {
         println!("{}", "No files could be categorized offline.".yellow());

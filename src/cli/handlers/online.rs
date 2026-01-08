@@ -18,7 +18,7 @@ pub async fn handle_online_organization(
     cache: &mut Cache,
     undo_log: &mut UndoLog,
 ) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
-    let client = GeminiClient::new(config.api_key.clone(), config.categories.clone());
+    let client = GeminiClient::new(&config.api_key, &config.categories);
 
     println!("Asking Gemini to organize...");
 

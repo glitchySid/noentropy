@@ -11,6 +11,7 @@ pub fn default_categories() -> Vec<String> {
         "Documents".to_string(),
         "Installers".to_string(),
         "Music".to_string(),
+        "Video".to_string(),
         "Archives".to_string(),
         "Code".to_string(),
         "Misc".to_string(),

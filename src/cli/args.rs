@@ -23,6 +23,9 @@ pub struct Args {
     #[arg(long, help = "Change api key")]
     pub change_key: bool,
 
+    #[arg(long, help = "Use offline mode (extension-based categorization)")]
+    pub offline: bool,
+
     /// Optional path to organize instead of the configured download folder
     ///
     /// If provided, this path will be used instead of the download folder

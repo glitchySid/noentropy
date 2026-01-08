@@ -8,6 +8,33 @@ const MAX_RETRIES: u32 = 3;
 pub struct Prompter;
 
 impl Prompter {
+    pub fn prompt_offline_mode(error_msg: &str) -> bool {
+        println!();
+        println!(
+            "{} Unable to connect to Gemini API: {}",
+            "WARNING:".yellow(),
+            error_msg
+        );
+        println!();
+        println!(
+            "Continue with {} (extension-based categorization)?",
+            "offline mode".cyan()
+        );
+        println!("Note: Files with unknown extensions will be skipped.");
+        print!("[y/N]: ");
+
+        if std::io::stdout().flush().is_err() {
+            return false;
+        }
+
+        let mut input = String::new();
+        if std::io::stdin().read_line(&mut input).is_err() {
+            return false;
+        }
+
+        matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
+    }
+
     pub fn prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
         println!();
         println!(

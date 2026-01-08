@@ -1,13 +1,15 @@
 use crate::cli::Args;
-use crate::files::{FileBatch, execute_move, is_text_file, read_file_sample};
+use crate::files::{
+    FileBatch, categorize_files_offline, execute_move, is_text_file, read_file_sample,
+};
 use crate::gemini::GeminiClient;
 use crate::models::OrganizationPlan;
-use crate::settings::Config;
+use crate::settings::{Config, Prompter};
 use crate::storage::{Cache, UndoLog};
 use colored::*;
 use futures::future::join_all;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 /// Validates that a path exists and is a readable directory
@@ -128,8 +130,6 @@ pub async fn handle_organization(
     args: Args,
     config: Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let client: GeminiClient = GeminiClient::new(config.api_key, config.categories.clone());
-
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
     let mut cache = Cache::load_or_create(&cache_path);
@@ -144,7 +144,11 @@ pub async fn handle_organization(
     undo_log.cleanup_old_entries(UNDO_LOG_RETENTION_SECONDS);
 
     // Use custom path if provided, otherwise fall back to configured download folder
-    let target_path = args.path.unwrap_or(config.download_folder);
+    let target_path = args
+        .path
+        .as_ref()
+        .cloned()
+        .unwrap_or_else(|| config.download_folder.clone());
 
     // Validate and normalize the target path early
     let target_path = match validate_and_normalize_path(&target_path) {
@@ -162,19 +166,140 @@ pub async fn handle_organization(
         return Ok(());
     }
 
+    println!("Found {} files to organize.", batch.count());
+
+    // Determine if we should use offline mode
+    let use_offline = if args.offline {
+        println!("{}", "Using offline mode (--offline flag).".cyan());
+        true
+    } else {
+        let client = GeminiClient::new(config.api_key.clone(), config.categories.clone());
+        match client.check_connectivity().await {
+            Ok(()) => false,
+            Err(e) => {
+                if Prompter::prompt_offline_mode(&e.to_string()) {
+                    true
+                } else {
+                    println!("{}", "Exiting.".yellow());
+                    return Ok(());
+                }
+            }
+        }
+    };
+
+    let plan = if use_offline {
+        handle_offline_organization(&batch, &target_path, args.dry_run, &mut undo_log)?
+    } else {
+        handle_online_organization(
+            &args,
+            &config,
+            batch,
+            &target_path,
+            &mut cache,
+            &mut undo_log,
+        )
+        .await?
+    };
+
+    // Only save if we have a plan (online mode returns None after moving)
+    if plan.is_none()
+        && let Err(e) = cache.save(cache_path.as_path())
+    {
+        eprintln!("Warning: Failed to save cache: {}", e);
+    }
+
+    if let Err(e) = undo_log.save(&undo_log_path) {
+        eprintln!("Warning: Failed to save undo log: {}", e);
+    }
+
+    Ok(())
+}
+
+fn handle_offline_organization(
+    batch: &FileBatch,
+    target_path: &Path,
+    dry_run: bool,
+    undo_log: &mut UndoLog,
+) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
+    println!("{}", "Categorizing files by extension...".cyan());
+
+    let result = categorize_files_offline(&batch.filenames);
+
+    if result.plan.files.is_empty() {
+        println!("{}", "No files could be categorized offline.".yellow());
+        print_skipped_files(&result.skipped);
+        return Ok(None);
+    }
+
+    // Print categorization summary
+    print_categorization_summary(&result.plan);
+    print_skipped_files(&result.skipped);
+
+    if dry_run {
+        println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
+    } else {
+        execute_move(target_path, result.plan, Some(undo_log));
+    }
+
+    println!("{}", "Done!".green().bold());
+    Ok(None)
+}
+
+fn print_categorization_summary(plan: &OrganizationPlan) {
+    use std::collections::HashMap;
+
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for file in &plan.files {
+        *counts.entry(file.category.as_str()).or_insert(0) += 1;
+    }
+
+    println!();
+    println!("{}", "Categorized files:".green());
+    for (category, count) in &counts {
+        println!("  {}: {} file(s)", category.cyan(), count);
+    }
+    println!();
+}
+
+fn print_skipped_files(skipped: &[String]) {
+    if skipped.is_empty() {
+        return;
+    }
+
     println!(
-        "Found {} files. Asking Gemini to organize...",
-        batch.count()
+        "{} {} file(s) with unknown extension:",
+        "Skipped".yellow(),
+        skipped.len()
     );
+    for filename in skipped.iter().take(10) {
+        println!("  - {}", filename);
+    }
+    if skipped.len() > 10 {
+        println!("  ... and {} more", skipped.len() - 10);
+    }
+    println!();
+}
+
+async fn handle_online_organization(
+    args: &Args,
+    config: &Config,
+    batch: FileBatch,
+    target_path: &Path,
+    cache: &mut Cache,
+    undo_log: &mut UndoLog,
+) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
+    let client = GeminiClient::new(config.api_key.clone(), config.categories.clone());
+
+    println!("Asking Gemini to organize...");
 
     let mut plan: OrganizationPlan = match client
-        .organize_files_in_batches(batch.filenames, Some(&mut cache), Some(&target_path))
+        .organize_files_in_batches(batch.filenames, Some(cache), Some(target_path))
         .await
     {
         Ok(plan) => plan,
         Err(e) => {
             handle_gemini_error(e);
-            return Ok(());
+            return Ok(None);
         }
     };
 
@@ -229,19 +354,11 @@ pub async fn handle_organization(
     if args.dry_run {
         println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
     } else {
-        execute_move(&target_path, plan, Some(&mut undo_log));
+        execute_move(target_path, plan, Some(undo_log));
     }
     println!("{}", "Done!".green().bold());
 
-    if let Err(e) = cache.save(cache_path.as_path()) {
-        eprintln!("Warning: Failed to save cache: {}", e);
-    }
-
-    if let Err(e) = undo_log.save(&undo_log_path) {
-        eprintln!("Warning: Failed to save undo log: {}", e);
-    }
-
-    Ok(())
+    Ok(None)
 }
 
 pub async fn handle_undo(

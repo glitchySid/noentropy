@@ -25,6 +25,22 @@ pub struct GeminiClient {
 }
 
 impl GeminiClient {
+    /// Checks if the Gemini API is reachable and the API key is valid.
+    /// Makes a minimal request to verify connectivity.
+    pub async fn check_connectivity(&self) -> Result<(), GeminiError> {
+        let url = self.build_url();
+        let request_body = json!({
+            "contents": [{ "parts": [{ "text": "ping" }] }],
+            "generationConfig": { "maxOutputTokens": 1 }
+        });
+
+        match self.client.post(&url).json(&request_body).send().await {
+            Ok(response) if response.status().is_success() => Ok(()),
+            Ok(response) => Err(GeminiError::from_response(response).await),
+            Err(e) => Err(GeminiError::NetworkError(e)),
+        }
+    }
+
     pub fn new(api_key: String, categories: Vec<String>) -> Self {
         Self::with_model(api_key, DEFAULT_MODEL.to_string(), categories)
     }

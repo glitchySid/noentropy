@@ -1,9 +1,11 @@
 pub mod batch;
+pub mod categorizer;
 pub mod detector;
 pub mod mover;
 pub mod undo;
 
 pub use batch::FileBatch;
+pub use categorizer::{OfflineCategorizationResult, categorize_files_offline};
 pub use detector::{is_text_file, read_file_sample};
 pub use mover::execute_move;
 pub use undo::undo_moves;

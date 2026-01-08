@@ -89,10 +89,17 @@ impl GeminiClient {
     ) -> Result<OrganizationPlan, GeminiError> {
         let url = self.build_url();
 
-        if let (Some(cache), Some(base_path)) = (cache.as_ref(), base_path)
-            && let Some(cached_response) = cache.get_cached_response(&filenames, base_path)
+        // Check cache and get pre-fetched metadata in one pass
+        let cache_result = match (cache.as_ref(), base_path) {
+            (Some(c), Some(bp)) => Some(c.check_cache(&filenames, bp)),
+            _ => None,
+        };
+
+        // Return cached response if valid
+        if let Some(ref result) = cache_result
+            && let Some(ref cached_response) = result.cached_response
         {
-            return Ok(cached_response);
+            return Ok(cached_response.clone());
         }
 
         let prompt =
@@ -102,8 +109,9 @@ impl GeminiClient {
         let res = self.send_request_with_retry(&url, &request_body).await?;
         let plan = self.parse_categorization_response(res).await?;
 
-        if let (Some(cache), Some(base_path)) = (cache.as_mut(), base_path) {
-            cache.cache_response(&filenames, plan.clone(), base_path);
+        // Cache response using pre-fetched metadata (no second metadata lookup)
+        if let (Some(cache), Some(result)) = (cache.as_mut(), cache_result) {
+            cache.cache_response_with_metadata(&filenames, plan.clone(), result.file_metadata);
         }
 
         Ok(plan)

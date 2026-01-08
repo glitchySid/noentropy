@@ -1,7 +1,7 @@
 pub mod cache;
 pub mod undo_log;
 
-pub use cache::Cache;
+pub use cache::{Cache, CacheCheckResult};
 pub use undo_log::UndoLog;
 
 #[cfg(test)]

@@ -6,6 +6,12 @@ use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// Result of checking the cache - includes pre-fetched metadata to avoid double lookups
+pub struct CacheCheckResult {
+    pub cached_response: Option<OrganizationPlan>,
+    pub file_metadata: HashMap<String, FileMetadata>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cache {
     entries: HashMap<String, CacheEntry>,
@@ -64,43 +70,92 @@ impl Cache {
         Ok(())
     }
 
+    /// Checks cache and returns pre-fetched metadata to avoid double lookups.
+    /// The returned metadata can be passed to `cache_response_with_metadata` on cache miss.
+    pub fn check_cache(&self, filenames: &[String], base_path: &Path) -> CacheCheckResult {
+        // Fetch metadata once for all files
+        let file_metadata: HashMap<String, FileMetadata> = filenames
+            .iter()
+            .filter_map(|filename| {
+                let file_path = base_path.join(filename);
+                Self::get_file_metadata(&file_path)
+                    .ok()
+                    .map(|m| (filename.clone(), m))
+            })
+            .collect();
+
+        let cache_key = self.generate_cache_key(filenames);
+
+        let cached_response = self.entries.get(&cache_key).and_then(|entry| {
+            // Validate all files are unchanged using pre-fetched metadata
+            let all_unchanged = filenames.iter().all(|filename| {
+                match (
+                    file_metadata.get(filename),
+                    entry.file_metadata.get(filename),
+                ) {
+                    (Some(current), Some(cached)) => current == cached,
+                    _ => false,
+                }
+            });
+
+            if all_unchanged {
+                println!("Using cached response (timestamp: {})", entry.timestamp);
+                Some(entry.response.clone())
+            } else {
+                None
+            }
+        });
+
+        CacheCheckResult {
+            cached_response,
+            file_metadata,
+        }
+    }
+
+    /// Cache response using pre-fetched metadata (avoids double metadata lookup)
+    pub fn cache_response_with_metadata(
+        &mut self,
+        filenames: &[String],
+        response: OrganizationPlan,
+        file_metadata: HashMap<String, FileMetadata>,
+    ) {
+        let cache_key = self.generate_cache_key(filenames);
+
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let entry = CacheEntry {
+            response,
+            timestamp,
+            file_metadata,
+        };
+
+        self.entries.insert(cache_key, entry);
+
+        if self.entries.len() > self.max_entries {
+            self.evict_oldest();
+        }
+
+        println!("Cached response for {} files", filenames.len());
+    }
+
+    /// Legacy method - checks cache for a response (fetches metadata internally)
+    #[deprecated(
+        note = "Use check_cache() + cache_response_with_metadata() to avoid double metadata lookups"
+    )]
     pub fn get_cached_response(
         &self,
         filenames: &[String],
         base_path: &Path,
     ) -> Option<OrganizationPlan> {
-        let cache_key = self.generate_cache_key(filenames);
-
-        if let Some(entry) = self.entries.get(&cache_key) {
-            let mut all_files_unchanged = true;
-
-            for filename in filenames {
-                let file_path = base_path.join(filename);
-                if let Ok(current_metadata) = Self::get_file_metadata(&file_path) {
-                    if let Some(cached_metadata) = entry.file_metadata.get(filename) {
-                        if current_metadata != *cached_metadata {
-                            all_files_unchanged = false;
-                            break;
-                        }
-                    } else {
-                        all_files_unchanged = false;
-                        break;
-                    }
-                } else {
-                    all_files_unchanged = false;
-                    break;
-                }
-            }
-
-            if all_files_unchanged {
-                println!("Using cached response (timestamp: {})", entry.timestamp);
-                return Some(entry.response.clone());
-            }
-        }
-
-        None
+        let result = self.check_cache(filenames, base_path);
+        result.cached_response
     }
 
+    /// Legacy method - caches a response (fetches metadata internally)
+    #[deprecated(note = "Use cache_response_with_metadata() with pre-fetched metadata")]
     pub fn cache_response(
         &mut self,
         filenames: &[String],

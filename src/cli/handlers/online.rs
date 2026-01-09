@@ -10,6 +10,23 @@ use futures::future::join_all;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+/// Handles the online (AI-powered) organization of files.
+///
+/// This function uses the Gemini API to intelligently categorize files based on
+/// their names and content. It supports deep inspection for text files, where the
+/// AI will read file contents to suggest sub-categories.
+///
+/// # Arguments
+/// * `args` - Command-line arguments including dry_run and max_concurrent settings
+/// * `config` - Configuration containing API key and categories
+/// * `batch` - The batch of files to organize
+/// * `target_path` - The target directory for organized files
+/// * `cache` - Cache for storing/retrieving AI responses
+/// * `undo_log` - Log for tracking file moves (for undo functionality)
+///
+/// # Returns
+/// * `Ok(None)` - Organization completed (result printed to console)
+/// * `Err(_)` - An error occurred during organization
 pub async fn handle_online_organization(
     args: &Args,
     config: &Config,

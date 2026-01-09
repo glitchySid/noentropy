@@ -70,14 +70,17 @@ impl Prompter {
 
     pub fn prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Error>> {
         let default_path = Self::get_default_downloads_folder();
-        let default_display = default_path.to_string_lossy();
+        let default_display = &default_path.to_string_lossy();
 
         println!();
         println!(
             "Enter path to folder to organize (e.g., {}):",
-            default_display.yellow()
+            &default_display.yellow()
         );
-        println!("Or press Enter to use default: {}", default_display.green());
+        println!(
+            "Or press Enter to use default: {}",
+            &default_display.green()
+        );
         println!("Folder path: ");
 
         let mut attempts = 0;

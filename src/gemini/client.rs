@@ -41,8 +41,12 @@ impl GeminiClient {
         }
     }
 
-    pub fn new(api_key: String, categories: Vec<String>) -> Self {
-        Self::with_model(api_key, DEFAULT_MODEL.to_string(), categories)
+    pub fn new(api_key: &str, categories: &[String]) -> Self {
+        Self::with_model(
+            api_key.to_string(),
+            DEFAULT_MODEL.to_string(),
+            categories.to_vec(),
+        )
     }
 
     pub fn with_model(api_key: String, model: String, categories: Vec<String>) -> Self {
@@ -89,21 +93,28 @@ impl GeminiClient {
     ) -> Result<OrganizationPlan, GeminiError> {
         let url = self.build_url();
 
-        if let (Some(cache), Some(base_path)) = (cache.as_ref(), base_path)
-            && let Some(cached_response) = cache.get_cached_response(&filenames, base_path)
+        // Check cache and get pre-fetched metadata in one pass
+        let cache_result = match (cache.as_ref(), base_path) {
+            (Some(c), Some(bp)) => Some(c.check_cache(&filenames, bp)),
+            _ => None,
+        };
+
+        // Return cached response if valid
+        if let Some(ref result) = cache_result
+            && let Some(ref cached_response) = result.cached_response
         {
-            return Ok(cached_response);
+            return Ok(cached_response.clone());
         }
 
-        let prompt =
-            PromptBuilder::new(filenames.clone()).build_categorization_prompt(&self.categories);
+        let prompt = PromptBuilder::new(&filenames).build_categorization_prompt(&self.categories);
         let request_body = self.build_categorization_request(&prompt);
 
         let res = self.send_request_with_retry(&url, &request_body).await?;
         let plan = self.parse_categorization_response(res).await?;
 
-        if let (Some(cache), Some(base_path)) = (cache.as_mut(), base_path) {
-            cache.cache_response(&filenames, plan.clone(), base_path);
+        // Cache response using pre-fetched metadata (no second metadata lookup)
+        if let (Some(cache), Some(result)) = (cache.as_mut(), cache_result) {
+            cache.cache_response_with_metadata(&filenames, plan.clone(), result.file_metadata);
         }
 
         Ok(plan)

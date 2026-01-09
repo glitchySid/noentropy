@@ -23,7 +23,7 @@ pub struct PromptBuilder {
 }
 
 impl PromptBuilder {
-    pub fn new(file_list: Vec<String>) -> Self {
+    pub fn new(file_list: &[String]) -> Self {
         Self {
             file_list: file_list.join(", "),
         }

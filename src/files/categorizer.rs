@@ -120,21 +120,21 @@ pub struct OfflineCategorizationResult {
 
 /// Categorizes a list of filenames using extension-based rules.
 /// Returns categorized files and a list of skipped filenames.
-pub fn categorize_files_offline(filenames: &[String]) -> OfflineCategorizationResult {
+pub fn categorize_files_offline(filenames: Vec<String>) -> OfflineCategorizationResult {
     let mut files = Vec::with_capacity(filenames.len());
     let mut skipped = Vec::new();
 
     for filename in filenames {
-        match categorize_by_extension(filename) {
+        match categorize_by_extension(&filename) {
             Some(category) => {
                 files.push(FileCategory {
-                    filename: filename.clone(),
+                    filename,
                     category: category.to_string(),
                     sub_category: String::new(),
                 });
             }
             None => {
-                skipped.push(filename.clone());
+                skipped.push(filename);
             }
         }
     }
@@ -187,7 +187,7 @@ mod tests {
             "file.xyz".to_string(),
         ];
 
-        let result = categorize_files_offline(&filenames);
+        let result = categorize_files_offline(filenames);
 
         assert_eq!(result.plan.files.len(), 2);
         assert_eq!(result.skipped.len(), 2);

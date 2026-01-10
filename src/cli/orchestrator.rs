@@ -7,39 +7,68 @@ use crate::settings::{Config, Prompter};
 use crate::storage::{Cache, UndoLog};
 use colored::*;
 
-/// Main entry point for file organization.
-/// Coordinates cache, undo log, and delegates to online/offline handlers.
-pub async fn handle_organization(
-    args: Args,
-    config: Config,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn initialize_cache() -> Result<(Cache, std::path::PathBuf), Box<dyn std::error::Error>> {
+    const CACHE_RETENTION_SECONDS: u64 = 7 * 24 * 60 * 60;
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
     let mut cache = Cache::load_or_create(&cache_path);
-
-    const CACHE_RETENTION_SECONDS: u64 = 7 * 24 * 60 * 60; // 7 days
-    const UNDO_LOG_RETENTION_SECONDS: u64 = 30 * 24 * 60 * 60; // 30 days
-
     cache.cleanup_old_entries(CACHE_RETENTION_SECONDS);
+    Ok((cache, cache_path))
+}
 
+fn initialize_undo_log() -> Result<(UndoLog, std::path::PathBuf), Box<dyn std::error::Error>> {
+    const UNDO_LOG_RETENTION_SECONDS: u64 = 30 * 24 * 60 * 60;
     let undo_log_path = Config::get_undo_log_path()?;
     let mut undo_log = UndoLog::load_or_create(&undo_log_path);
     undo_log.cleanup_old_entries(UNDO_LOG_RETENTION_SECONDS);
+    Ok((undo_log, undo_log_path))
+}
 
-    // Use custom path if provided, otherwise fall back to configured download folder
+async fn resolve_target_path(args: &Args, config: &Config) -> Option<std::path::PathBuf> {
     let target_path = args
         .path
         .as_ref()
         .cloned()
         .unwrap_or_else(|| config.download_folder.clone());
 
-    // Validate and normalize the target path early
-    let target_path = match validate_and_normalize_path(&target_path).await {
-        Ok(normalized) => normalized,
+    match validate_and_normalize_path(&target_path).await {
+        Ok(normalized) => Some(normalized),
         Err(e) => {
             println!("{}", format!("ERROR: {}", e).red());
-            return Ok(());
+            None
         }
+    }
+}
+
+async fn determine_offline_mode(args: &Args, config: &Config) -> Option<bool> {
+    if args.offline {
+        println!("{}", "Using offline mode (--offline flag).".cyan());
+        return Some(true);
+    }
+
+    let client = GeminiClient::new(&config.api_key, &config.categories);
+    match client.check_connectivity().await {
+        Ok(()) => Some(false),
+        Err(e) => {
+            if Prompter::prompt_offline_mode(&e.to_string()) {
+                Some(true)
+            } else {
+                println!("{}", "Exiting.".yellow());
+                None
+            }
+        }
+    }
+}
+
+pub async fn handle_organization(
+    args: Args,
+    config: Config,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (mut cache, cache_path) = initialize_cache()?;
+    let (mut undo_log, undo_log_path) = initialize_undo_log()?;
+
+    let Some(target_path) = resolve_target_path(&args, &config).await else {
+        return Ok(());
     };
 
     let batch = FileBatch::from_path(&target_path, args.recursive);
@@ -51,23 +80,8 @@ pub async fn handle_organization(
 
     println!("Found {} files to organize.", batch.count());
 
-    // Determine if we should use offline mode
-    let use_offline = if args.offline {
-        println!("{}", "Using offline mode (--offline flag).".cyan());
-        true
-    } else {
-        let client = GeminiClient::new(&config.api_key, &config.categories);
-        match client.check_connectivity().await {
-            Ok(()) => false,
-            Err(e) => {
-                if Prompter::prompt_offline_mode(&e.to_string()) {
-                    true
-                } else {
-                    println!("{}", "Exiting.".yellow());
-                    return Ok(());
-                }
-            }
-        }
+    let Some(use_offline) = determine_offline_mode(&args, &config).await else {
+        return Ok(());
     };
 
     let plan = if use_offline {
@@ -84,9 +98,8 @@ pub async fn handle_organization(
         .await?
     };
 
-    // Only save if we have a plan (online mode returns None after moving)
     if plan.is_none()
-        && let Err(e) = cache.save(cache_path.as_path())
+        && let Err(e) = cache.save(&cache_path)
     {
         eprintln!("Warning: Failed to save cache: {}", e);
     }

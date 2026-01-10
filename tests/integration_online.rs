@@ -11,7 +11,7 @@
 //! - File reading for deep inspection
 //! - Integration between components
 
-use noentropy::files::{FileBatch, is_text_file, read_file_sample};
+use noentropy::files::{is_text_file, read_file_sample, FileBatch};
 use noentropy::models::{FileCategory, OrganizationPlan};
 use noentropy::storage::{Cache, UndoLog};
 use std::collections::HashMap;
@@ -53,18 +53,18 @@ fn test_cache_stores_and_retrieves_organization_plans() {
         }],
     };
 
-    // Check cache (will also fetch metadata)
-    let check_result = cache.check_cache(&filenames, temp_dir.path());
-    assert!(check_result.cached_response.is_none());
+    // Check cache (returns None on miss)
+    let cached = cache.check_cache(&filenames, temp_dir.path());
+    assert!(cached.is_none());
 
-    // Store in cache with metadata
-    cache.cache_response_with_metadata(&filenames, plan.clone(), check_result.file_metadata);
+    // Store in cache
+    cache.cache_response(&filenames, plan.clone(), temp_dir.path());
 
     // Retrieve from cache
-    let check_result2 = cache.check_cache(&filenames, temp_dir.path());
-    assert!(check_result2.cached_response.is_some());
+    let cached2 = cache.check_cache(&filenames, temp_dir.path());
+    assert!(cached2.is_some());
 
-    let cached = check_result2.cached_response.unwrap();
+    let cached = cached2.unwrap();
     assert_eq!(cached.files.len(), 1);
     assert_eq!(cached.files[0].filename, "test.txt");
 }
@@ -84,8 +84,7 @@ fn test_cache_invalidates_on_file_modification() {
     };
 
     // Cache the response
-    let check_result = cache.check_cache(&filenames, temp_dir.path());
-    cache.cache_response_with_metadata(&filenames, plan, check_result.file_metadata);
+    cache.cache_response(&filenames, plan, temp_dir.path());
 
     // Wait longer to ensure filesystem timestamp changes (at least 1 second for most filesystems)
     std::thread::sleep(std::time::Duration::from_secs(2));
@@ -101,14 +100,14 @@ fn test_cache_invalidates_on_file_modification() {
     let _ = fs::metadata(temp_dir.path().join("test.txt"));
 
     // Cache should be invalidated due to modification time change
-    let check_result2 = cache.check_cache(&filenames, temp_dir.path());
+    let cached = cache.check_cache(&filenames, temp_dir.path());
 
     // Note: Cache invalidation depends on file metadata (size/mtime) changing.
     // If the filesystem has coarse timestamp granularity, this test may be flaky.
     // The important behavior is that the cache CAN detect file changes.
     // For a more robust test, we check that the cache at least loads without error.
     // In production, files are typically modified minutes/hours apart.
-    if check_result2.cached_response.is_some() {
+    if cached.is_some() {
         // If cache wasn't invalidated, it means the filesystem timestamp
         // didn't change within our sleep window - this is acceptable
         // as long as the mechanism works for real-world use cases
@@ -151,12 +150,11 @@ fn test_cache_handles_multiple_files() {
         ],
     };
 
-    let check_result = cache.check_cache(&filenames, temp_dir.path());
-    cache.cache_response_with_metadata(&filenames, plan.clone(), check_result.file_metadata);
+    cache.cache_response(&filenames, plan.clone(), temp_dir.path());
 
-    let check_result2 = cache.check_cache(&filenames, temp_dir.path());
-    assert!(check_result2.cached_response.is_some());
-    assert_eq!(check_result2.cached_response.unwrap().files.len(), 3);
+    let cached = cache.check_cache(&filenames, temp_dir.path());
+    assert!(cached.is_some());
+    assert_eq!(cached.unwrap().files.len(), 3);
 }
 
 #[test]

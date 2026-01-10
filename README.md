@@ -26,26 +26,53 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 
 ### Installation
 
-**Option 1: Download Pre-built Binary**
+### Download Pre-built Binary
 
-Download the binary for your operating system from [releases](https://github.com/glitchySid/noentropy/releases):
+Download the latest release for your operating system from [releases](https://github.com/glitchySid/noentropy/releases):
 
+| OS | Download |
+|----|----------|
+| Linux x86_64 | `noentropy-x86_64-unknown-linux-gnu.tar.gz` |
+| macOS x86_64 | `noentropy-x86_64-apple-darwin.tar.gz` |
+| macOS arm64 | `noentropy-aarch64-apple-darwin.tar.gz` |
+| Windows x86_64 | `noentropy-x86_64-pc-windows-msvc.zip` |
+
+**Linux/macOS:**
 ```bash
-# Linux/macOS: Give execute permissions
-chmod +x noentropy
+# Download and extract
+curl -LO https://github.com/glitchySid/noentropy/releases/latest/download/noentropy-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf noentropy-x86_64-unknown-linux-gnu.tar.gz
 
-# Run NoEntropy
-./noentropy
+# Add to PATH (user-level)
+mkdir -p ~/.local/bin
+mv noentropy ~/.local/bin/
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc
+
+# Verify
+noentropy --help
 ```
 
-**Option 2: Build from Source**
+**Windows:**
+```powershell
+# Download and extract
+Invoke-WebRequest -Uri "https://github.com/glitchySid/noentropy/releases/latest/download/noentropy-x86_64-pc-windows-msvc.zip" -OutFile "noentropy.zip"
+Expand-Archive -Path "noentropy.zip" -DestinationPath "noentropy"
+
+# Add to PATH (User-level)
+$env:PATH += ";$env:USERPROFILE\AppData\Local\NoEntropy"
+
+# Or add via System Properties:
+# Win + R → sysdm.cpl → Environment Variables → Edit PATH
+```
+
+See the [Installation Guide](docs/INSTALLATION.md) for detailed instructions.
+
+### Build from Source
 
 ```bash
-# Clone repository
 git clone https://github.com/glitchySid/noentropy.git
 cd noentropy
-
-# Build and run
 cargo build --release
 ./target/release/noentropy
 ```

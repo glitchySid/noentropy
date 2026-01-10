@@ -94,12 +94,11 @@ impl GeminiClient {
         let url = self.build_url();
 
         // Check cache first
-        if let Some(ref mut c) = cache {
-            if let Some(bp) = base_path {
-                if let Some(cached) = c.check_cache(&filenames, bp) {
-                    return Ok(cached);
-                }
-            }
+        if let Some(ref mut c) = cache
+            && let Some(bp) = base_path
+            && let Some(cached) = c.check_cache(&filenames, bp)
+        {
+            return Ok(cached);
         }
 
         let prompt = PromptBuilder::new(&filenames).build_categorization_prompt(&self.categories);

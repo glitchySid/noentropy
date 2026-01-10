@@ -11,7 +11,7 @@
 //! - File reading for deep inspection
 //! - Integration between components
 
-use noentropy::files::{is_text_file, read_file_sample, FileBatch};
+use noentropy::files::{FileBatch, is_text_file, read_file_sample};
 use noentropy::models::{FileCategory, OrganizationPlan};
 use noentropy::storage::{Cache, UndoLog};
 use std::collections::HashMap;

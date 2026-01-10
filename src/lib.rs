@@ -6,7 +6,10 @@ pub mod settings;
 pub mod storage;
 
 pub use cli::Args;
-pub use files::{FileBatch, execute_move, is_text_file, read_file_sample, undo_moves};
+pub use files::{
+    FileBatch, MoveError, MoveSummary, execute_move, execute_move_auto, is_text_file,
+    read_file_sample, undo_moves,
+};
 pub use gemini::GeminiClient;
 pub use gemini::GeminiError;
 pub use models::{FileCategory, FileMoveRecord, MoveStatus, OrganizationPlan};

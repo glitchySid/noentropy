@@ -1,14 +1,16 @@
 pub mod batch;
 pub mod categorizer;
 pub mod detector;
+mod file_ops;
 pub mod mover;
 pub mod undo;
 
 pub use batch::FileBatch;
 pub use categorizer::{OfflineCategorizationResult, categorize_files_offline};
 pub use detector::{is_text_file, read_file_sample};
-pub use mover::execute_move;
-pub use undo::undo_moves;
+pub use file_ops::move_file_cross_platform;
+pub use mover::{MoveError, MoveSummary, execute_move, execute_move_auto};
+pub use undo::{UndoError, UndoSummary, undo_moves, undo_moves_auto};
 
 #[cfg(test)]
 mod tests {

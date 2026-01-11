@@ -22,9 +22,10 @@ pub async fn validate_and_normalize_path(path: &Path) -> Result<PathBuf, String>
         .map_err(|e| format!("Cannot access directory '{}': {}", path.display(), e))?;
 
     // canonicalize is sync-only, use spawn_blocking
+    let path_display = path.display().to_string();
     let path_owned = path.to_path_buf();
     tokio::task::spawn_blocking(move || path_owned.canonicalize())
         .await
         .map_err(|e| format!("Task failed: {}", e))?
-        .map_err(|e| format!("Failed to normalize path '{}': {}", path.display(), e))
+        .map_err(|e| format!("Failed to normalize path '{}': {}", path_display, e))
 }

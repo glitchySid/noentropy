@@ -28,6 +28,7 @@ fn create_test_args(dry_run: bool, path: Option<PathBuf>) -> Args {
         undo: true,
         change_key: false,
         offline: false,
+        duplicate: false,
         path,
     }
 }

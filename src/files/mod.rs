@@ -1,6 +1,7 @@
 pub mod batch;
 pub mod categorizer;
 pub mod detector;
+pub mod duplicate;
 mod file_ops;
 pub mod mover;
 pub mod undo;

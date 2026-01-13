@@ -30,6 +30,7 @@ fn create_test_args(dry_run: bool, max_concurrent: usize) -> Args {
         undo: false,
         change_key: false,
         offline: false,
+        duplicate: false,
         path: None,
     }
 }
@@ -101,6 +102,7 @@ fn test_args_all_flags() {
         change_key: true,
         offline: true,
         path: Some(PathBuf::from("/test/path")),
+        duplicate: true,
     };
 
     assert!(args.dry_run);

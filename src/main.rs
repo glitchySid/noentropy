@@ -23,12 +23,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Command::Duplicates { recursive } => {
             execute_delete(*recursive);
         }
-    } else if args.duplicate {
-        execute_delete(args.recursive);
-    } else {
-        let config = get_or_prompt_config()?;
-        handle_organization(args, config).await?;
     }
-
     Ok(())
 }

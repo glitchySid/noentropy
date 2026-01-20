@@ -84,23 +84,29 @@ On first run, NoEntropy will guide you through an interactive setup to configure
 ### Basic Usage
 
 ```bash
-# Organize your downloads folder
+# Organize your downloads folder (default command)
+./noentropy organize
+
+# Shorthand - no subcommand needed for organize
 ./noentropy
 
-# Organize a specific directory (current directory)
-./noentropy .
-
-# Organize a specific directory (absolute path)
-./noentropy /path/to/folder
+# Organize a specific directory
+./noentropy organize /path/to/folder
 
 # Preview changes without moving files
-./noentropy --dry-run
+./noentropy organize --dry-run
 
-# Preview organization of current directory
-./noentropy . --dry-run
+# Organize current directory with preview
+./noentropy organize . --dry-run
 
 # Undo the last organization
-./noentropy --undo
+./noentropy undo
+
+# Change API key
+./noentropy key
+
+# Find and delete duplicate files
+./noentropy duplicates --recursive
 ```
 
 ## Documentation
@@ -118,10 +124,10 @@ Comprehensive documentation is available in the `docs/` directory:
 ## Example Output
 
 ```bash
-$ ./noentropy
+$ ./noentropy organize
 
 Found 47 files. Asking Gemini to organize...
-Gemini Plan received! Performing deep inspection...
+Gemini Plan received. Performing deep inspection...
 Deep inspection complete!
 
 --- EXECUTION PLAN ---
@@ -145,21 +151,100 @@ Files moved: 47, Errors: 0
 Done!
 ```
 
+## Commands
+
+NoEntropy uses a command-based interface:
+
+| Command | Description |
+|---------|-------------|
+| `noentropy organize` | Organize files using AI categorization |
+| `noentropy undo` | Undo the last file organization |
+| `noentropy key` | Change the Gemini API key |
+| `noentropy duplicates` | Detect and delete duplicate files |
+
+### Organize Command
+
+Organize files in your downloads folder or any custom directory:
+
+```bash
+# Organize downloads folder (default)
+noentropy organize
+
+# Organize specific directory
+noentropy organize /path/to/folder
+
+# Organize current directory
+noentropy organize .
+
+# Preview without making changes
+noentropy organize --dry-run
+
+# Recursively scan subdirectories
+noentropy organize --recursive
+
+# Use offline mode (no API calls)
+noentropy organize --offline
+
+# Customize concurrent API requests
+noentropy organize --max-concurrent 10
+
+# Combine options
+noentropy organize /path/to/folder --dry-run --recursive
+```
+
+### Undo Command
+
+Revert the last file organization:
+
+```bash
+# Undo last organization in downloads folder
+noentropy undo
+
+# Preview undo without making changes
+noentropy undo --dry-run
+
+# Undo in specific directory
+noentropy undo /path/to/folder
+```
+
+### Key Command
+
+Update your Gemini API key:
+
+```bash
+noentropy key
+```
+
+### Duplicates Command
+
+Find and delete duplicate files:
+
+```bash
+# Find duplicates in downloads folder
+noentropy duplicates
+
+# Recursively search subdirectories
+noentropy duplicates --recursive
+
+# Preview duplicates without deleting
+noentropy duplicates --dry-run
+```
+
 ## Custom Path Support
 
-NoEntropy now supports organizing any directory, not just your configured Downloads folder!
+NoEntropy supports organizing any directory, not just your configured Downloads folder!
 
 ### Organize Any Directory
 
 ```bash
 # Organize current directory
-./noentropy .
+noentropy organize .
 
 # Organize specific folder
-./noentropy /path/to/folder
+noentropy organize /path/to/folder
 
 # Organize with relative path
-./noentropy ./subfolder
+noentropy organize ./subfolder
 ```
 
 ### Features
@@ -178,13 +263,13 @@ NoEntropy now supports organizing any directory, not just your configured Downlo
 
 ```bash
 # Preview organization of current directory
-./noentropy . --dry-run
+noentropy organize . --dry-run
 
 # Organize project folder recursively
-./noentropy ./my-project --recursive
+noentropy organize ./my-project --recursive
 
 # Undo organization in specific directory
-./noentropy /path/to/folder --undo
+noentropy undo /path/to/folder
 ```
 
 ## Use Cases
@@ -206,7 +291,7 @@ Define your own categories instead of using defaults:
 categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
 ```
 
-Perfect for organizing files based on your specific workflow. See the [Configuration Guide](docs/CONFIGURATION.md) for examples.
+Perfect for organizing files based on your specific workflow. See the [Configuration Guide](docs/CONTRIBUTION.md) for examples.
 
 ### Smart Caching
 
@@ -217,7 +302,7 @@ NoEntropy caches API responses for 7 days to minimize costs and improve performa
 Made a mistake? Easily undo the last organization:
 
 ```bash
-./noentropy --undo
+noentropy undo
 ```
 
 All file moves are tracked for 30 days with full conflict detection and safety features.
@@ -227,17 +312,62 @@ All file moves are tracked for 30 days with full conflict detection and safety f
 - **Rust 2024 Edition** or later (if building from source)
 - **Google Gemini API Key** - Get one at [https://ai.google.dev/](https://ai.google.dev/)
 
-## Command-Line Options
+## Command-Line Reference
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `[PATH]` | - | Path to organize (defaults to configured download folder) |
-| `--dry-run` | `-d` | Preview changes without moving files |
-| `--max-concurrent` | `-m` | Maximum concurrent API requests (default: 5) |
-| `--recursive` | - | Recursively search files in subdirectories |
-| `--undo` | - | Undo the last file organization |
-| `--change-key` | - | Change Gemini API key |
-| `--help` | `-h` | Show help message |
+```
+Usage: noentropy <COMMAND>
+
+Commands:
+  organize    Organize downloads using AI categorization
+  undo        Undo the last file organization
+  key         Change the API key
+  duplicates  Detect and delete duplicate files
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+### Organize Command Options
+
+```
+Usage: noentropy organize [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]  Path to organize (defaults to configured download folder)
+
+Options:
+  -d, --dry-run          Preview changes without moving files
+  -m, --max-concurrent <MAX_CONCURRENT>
+                         Maximum concurrent API requests (default: 5)
+  -o, --offline          Use offline mode (extension-based categorization)
+  -r, --recursive        Recursively search files in subdirectories
+  -h, --help             Print help
+```
+
+### Undo Command Options
+
+```
+Usage: noentropy undo [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]  Path to undo (defaults to configured download folder)
+
+Options:
+  -d, --dry-run    Preview changes without moving files
+  -h, --help       Print help
+```
+
+### Duplicates Command Options
+
+```
+Usage: noentropy duplicates [OPTIONS]
+
+Options:
+  -r, --recursive    Recursively search files in subdirectory
+  -h, --help         Print help
+```
 
 See the [Usage Guide](docs/USAGE.md) for detailed examples and workflows.
 

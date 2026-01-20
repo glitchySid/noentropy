@@ -1,4 +1,4 @@
-use crate::cli::Args;
+use crate::cli::Command;
 use crate::cli::path_utils::validate_and_normalize_path;
 use crate::settings::Config;
 use crate::storage::UndoLog;
@@ -6,7 +6,7 @@ use colored::*;
 use std::path::PathBuf;
 
 pub async fn handle_undo(
-    args: Args,
+    command: &Command,
     download_path: PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let undo_log_path = Config::get_undo_log_path()?;
@@ -23,10 +23,13 @@ pub async fn handle_undo(
         return Ok(());
     }
 
-    // Use custom path if provided, otherwise use the configured download path
-    let target_path = args.path.unwrap_or(download_path);
+    let (dry_run, path) = match command {
+        Command::Undo { dry_run, path } => (*dry_run, path),
+        _ => unreachable!(),
+    };
 
-    // Validate and normalize the target path early
+    let target_path = path.as_ref().cloned().unwrap_or(download_path);
+
     let target_path = match validate_and_normalize_path(&target_path).await {
         Ok(normalized) => normalized,
         Err(e) => {
@@ -35,7 +38,7 @@ pub async fn handle_undo(
         }
     };
 
-    crate::files::undo_moves(&target_path, &mut undo_log, args.dry_run)?;
+    crate::files::undo_moves(&target_path, &mut undo_log, dry_run)?;
 
     if let Err(e) = undo_log.save(&undo_log_path) {
         eprintln!(

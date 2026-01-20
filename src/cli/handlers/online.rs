@@ -1,4 +1,4 @@
-use crate::cli::Args;
+use crate::cli::Command;
 use crate::cli::errors::handle_gemini_error;
 use crate::files::{FileBatch, execute_move, is_text_file, read_file_sample};
 use crate::gemini::GeminiClient;
@@ -17,7 +17,7 @@ use std::sync::Arc;
 /// AI will read file contents to suggest sub-categories.
 ///
 /// # Arguments
-/// * `args` - Command-line arguments including dry_run and max_concurrent settings
+/// * `command` - Command enum containing organize-specific arguments
 /// * `config` - Configuration containing API key and categories
 /// * `batch` - The batch of files to organize
 /// * `target_path` - The target directory for organized files
@@ -28,13 +28,22 @@ use std::sync::Arc;
 /// * `Ok(None)` - Organization completed (result printed to console)
 /// * `Err(_)` - An error occurred during organization
 pub async fn handle_online_organization(
-    args: &Args,
+    command: &Command,
     config: &Config,
     batch: FileBatch,
     target_path: &Path,
     cache: &mut Cache,
     undo_log: &mut UndoLog,
 ) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
+    let (max_concurrent, dry_run) = match command {
+        Command::Organize {
+            max_concurrent,
+            dry_run,
+            ..
+        } => (*max_concurrent, *dry_run),
+        _ => unreachable!(),
+    };
+
     let client = GeminiClient::new(&config.api_key, &config.categories);
 
     println!("Asking Gemini to organize...");
@@ -57,7 +66,7 @@ pub async fn handle_online_organization(
 
     let client_arc: Arc<GeminiClient> = Arc::new(client);
     let semaphore: Arc<tokio::sync::Semaphore> =
-        Arc::new(tokio::sync::Semaphore::new(args.max_concurrent));
+        Arc::new(tokio::sync::Semaphore::new(max_concurrent));
 
     let tasks: Vec<_> = plan
         .files
@@ -98,7 +107,7 @@ pub async fn handle_online_organization(
 
     println!("{}", "Deep inspection complete! Moving Files.....".green());
 
-    if args.dry_run {
+    if dry_run {
         println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
     } else {
         execute_move(target_path, plan, Some(undo_log));

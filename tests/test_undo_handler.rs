@@ -7,7 +7,7 @@
 //! - Dry run behavior
 //! - Successful undo operations
 
-use noentropy::cli::Args;
+use noentropy::cli::args::Command;
 use noentropy::cli::handlers::handle_undo;
 use noentropy::cli::path_utils::validate_and_normalize_path;
 use noentropy::storage::UndoLog;
@@ -19,21 +19,13 @@ use tempfile::TempDir;
 // HELPER FUNCTIONS
 // ============================================================================
 
-/// Helper to create test Args
-fn create_test_args(dry_run: bool, path: Option<PathBuf>) -> Args {
-    Args {
-        dry_run,
-        max_concurrent: 5,
-        recursive: false,
-        undo: true,
-        change_key: false,
-        offline: false,
-        duplicate: false,
-        path,
-    }
+/// Helper to create test Command::Undo
+fn create_test_undo_command(dry_run: bool, path: Option<PathBuf>) -> Command {
+    Command::Undo { dry_run, path }
 }
 
 /// Helper to setup a temp directory with files and subdirectories for undo testing
+#[allow(dead_code)]
 fn setup_test_dir_for_undo() -> (TempDir, PathBuf) {
     let temp_dir = TempDir::new().unwrap();
     let dir_path = temp_dir.path().to_path_buf();
@@ -49,8 +41,8 @@ fn setup_test_dir_for_undo() -> (TempDir, PathBuf) {
     File::create(&photo2).unwrap();
 
     // Create source locations that no longer exist (after move)
-    let source1 = dir_path.join("photo1.jpg");
-    let source2 = dir_path.join("photo2.png");
+    let _source1 = dir_path.join("photo1.jpg");
+    let _source2 = dir_path.join("photo2.png");
 
     (temp_dir, dir_path)
 }
@@ -74,10 +66,10 @@ fn create_undo_log_with_moves(undo_log_path: &Path, moves: Vec<(PathBuf, PathBuf
 async fn test_handle_undo_no_undo_log_exists() {
     let temp_dir = TempDir::new().unwrap();
     let dir_path = temp_dir.path().to_path_buf();
-    let args = create_test_args(false, None);
+    let command = create_test_undo_command(false, None);
 
     // Don't create an undo log file - it should handle gracefully
-    let result = handle_undo(args, dir_path).await;
+    let result = handle_undo(&command, dir_path).await;
 
     assert!(result.is_ok());
 }
@@ -92,8 +84,8 @@ async fn test_handle_undo_no_completed_moves() {
     let undo_log = UndoLog::new();
     undo_log.save(&undo_log_path).unwrap();
 
-    let args = create_test_args(false, None);
-    let result = handle_undo(args, dir_path).await;
+    let command = create_test_undo_command(false, None);
+    let result = handle_undo(&command, dir_path).await;
 
     assert!(result.is_ok());
 }
@@ -122,8 +114,8 @@ async fn test_handle_undo_with_custom_path() {
     create_undo_log_with_moves(&undo_log_path, vec![(source_file.clone(), dest_file)]);
 
     // Use custom path argument
-    let args = create_test_args(true, Some(custom_path.clone()));
-    let result = handle_undo(args, custom_path).await;
+    let command = create_test_undo_command(true, Some(custom_path.clone()));
+    let result = handle_undo(&command, custom_path).await;
 
     assert!(result.is_ok());
 }
@@ -145,8 +137,8 @@ async fn test_handle_undo_dry_run_no_changes() {
     create_undo_log_with_moves(&undo_log_path, vec![(source.clone(), photo.clone())]);
 
     // Dry run should not actually undo
-    let args = create_test_args(true, None);
-    let result = handle_undo(args, dir_path).await;
+    let command = create_test_undo_command(true, None);
+    let result = handle_undo(&command, dir_path).await;
 
     assert!(result.is_ok());
     // File should still be in Images directory (dry run)
@@ -171,8 +163,8 @@ async fn test_handle_undo_invalid_path() {
 
     // Use a non-existent path
     let invalid_path = dir_path.join("nonexistent_directory");
-    let args = create_test_args(false, Some(invalid_path.clone()));
-    let result = handle_undo(args, invalid_path).await;
+    let command = create_test_undo_command(false, Some(invalid_path.clone()));
+    let result = handle_undo(&command, invalid_path).await;
 
     // Should handle error gracefully and return Ok
     assert!(result.is_ok());
@@ -264,7 +256,7 @@ async fn test_handle_undo_multiple_moves_dry_run() {
         (dir_path.join("doc1.pdf"), docs_dir.join("doc1.pdf")),
     ];
 
-    for (source, dest) in &files {
+    for (_source, dest) in &files {
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent).unwrap();
         }
@@ -277,8 +269,8 @@ async fn test_handle_undo_multiple_moves_dry_run() {
     create_undo_log_with_moves(&undo_log_path, moves);
 
     // Dry run
-    let args = create_test_args(true, None);
-    let result = handle_undo(args, dir_path).await;
+    let command = create_test_undo_command(true, None);
+    let result = handle_undo(&command, dir_path).await;
 
     assert!(result.is_ok());
     // All destination files should still exist
@@ -315,8 +307,8 @@ async fn test_handle_undo_logs_saved() {
     fs::copy(&photo, target_path.join("Images").join("photo.jpg")).unwrap();
 
     // Run undo with --dry-run to test it doesn't fail on save
-    let args = create_test_args(true, None);
-    let result = handle_undo(args, target_path).await;
+    let command = create_test_undo_command(true, None);
+    let result = handle_undo(&command, target_path).await;
 
     assert!(result.is_ok());
 }

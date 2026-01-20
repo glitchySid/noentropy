@@ -1,44 +1,43 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    #[arg(short, long, help = "Preview changes without moving files")]
-    pub dry_run: bool,
+    #[command(subcommand)]
+    pub command: Command,
+}
 
-    #[arg(
-        short,
-        long,
-        default_value_t = 5,
-        help = "Maximum concurrent API requests"
-    )]
-    pub max_concurrent: usize,
-
-    #[arg(long, help = "Recursively searches files in subdirectory")]
-    pub recursive: bool,
-
-    #[arg(long, help = "Undo the last file organization")]
-    pub undo: bool,
-    #[arg(long, help = "Change api key")]
-    pub change_key: bool,
-
-    #[arg(long, help = "Use offline mode (extension-based categorization)")]
-    pub offline: bool,
-
-    #[arg(long, help = "Detect duplicate files")]
-    pub duplicate: bool,
-
-    /// Optional path to organize instead of the configured download folder
-    ///
-    /// If provided, this path will be used instead of the download folder
-    /// configured in the settings. The path will be validated and normalized
-    /// (resolving `.`, `..`, and symlinks) before use.
-    ///
-    /// Examples:
-    /// - `.` or `./` for current directory
-    /// - `/absolute/path/to/folder` for absolute paths
-    /// - `relative/path` for paths relative to current working directory
-    #[arg(help = "Path to organize (defaults to configured download folder)")]
-    pub path: Option<PathBuf>,
+#[derive(Subcommand, Debug)]
+pub enum Command {
+    /// Organize downloads using AI categorization
+    #[command(name = "organize")]
+    Organize {
+        #[arg(long, help = "Preview changes without moving files")]
+        dry_run: bool,
+        #[arg(long, default_value_t = 5, help = "Maximum concurrent API requests")]
+        max_concurrent: usize,
+        #[arg(long, help = "Use offline mode (extension-based categorization)")]
+        offline: bool,
+        #[arg(long, help = "Recursively search files in subdirectory")]
+        recursive: bool,
+        #[arg(help = "Path to organize (defaults to configured download folder)")]
+        path: Option<PathBuf>,
+    },
+    /// Undo the last file organization
+    Undo {
+        #[arg(long, help = "Preview changes without moving files")]
+        dry_run: bool,
+        #[arg(help = "Path to undo (defaults to configured download folder)")]
+        path: Option<PathBuf>,
+    },
+    /// Change the API key
+    #[command(name = "key")]
+    ChangeKey,
+    /// Detect and delete duplicate files
+    #[command(name = "duplicates")]
+    Duplicates {
+        #[arg(long, help = "Recursively search files in subdirectory")]
+        recursive: bool,
+    },
 }

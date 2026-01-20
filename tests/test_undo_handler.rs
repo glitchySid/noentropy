@@ -25,6 +25,7 @@ fn create_test_undo_command(dry_run: bool, path: Option<PathBuf>) -> Command {
 }
 
 /// Helper to setup a temp directory with files and subdirectories for undo testing
+#[allow(dead_code)]
 fn setup_test_dir_for_undo() -> (TempDir, PathBuf) {
     let temp_dir = TempDir::new().unwrap();
     let dir_path = temp_dir.path().to_path_buf();
@@ -40,8 +41,8 @@ fn setup_test_dir_for_undo() -> (TempDir, PathBuf) {
     File::create(&photo2).unwrap();
 
     // Create source locations that no longer exist (after move)
-    let source1 = dir_path.join("photo1.jpg");
-    let source2 = dir_path.join("photo2.png");
+    let _source1 = dir_path.join("photo1.jpg");
+    let _source2 = dir_path.join("photo2.png");
 
     (temp_dir, dir_path)
 }
@@ -255,7 +256,7 @@ async fn test_handle_undo_multiple_moves_dry_run() {
         (dir_path.join("doc1.pdf"), docs_dir.join("doc1.pdf")),
     ];
 
-    for (source, dest) in &files {
+    for (_source, dest) in &files {
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent).unwrap();
         }

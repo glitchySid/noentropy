@@ -56,7 +56,7 @@ fn create_test_plan(filenames: &[&str]) -> OrganizationPlan {
 
 #[test]
 fn test_cache_key_order_independent() {
-    let cache = Cache::new();
+    let _cache = Cache::new();
 
     let filenames1 = vec![
         "a.txt".to_string(),
@@ -414,7 +414,7 @@ fn test_cache_handles_duplicate_filenames() {
 
     let filenames = vec!["file.txt".to_string(), "file.txt".to_string()];
     let file_path1 = temp_dir.path().join("file.txt");
-    let file_path2 = temp_dir.path().join("file.txt"); // Same file, different "entry"
+    let _file_path2 = temp_dir.path().join("file.txt"); // Same file, different "entry"
     File::create(&file_path1).unwrap();
 
     let plan = create_test_plan(&["file.txt", "file.txt"]);

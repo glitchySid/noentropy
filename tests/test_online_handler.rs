@@ -113,7 +113,6 @@ fn test_command_organize_all_flags() {
         recursive: true,
         offline: true,
         path: Some(PathBuf::from("/test/path")),
-        duplicate: true,
     };
 
     match &command {

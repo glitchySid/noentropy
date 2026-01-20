@@ -7,7 +7,7 @@
 //! - File sample reading
 //! - API error handling (graceful degradation)
 
-use noentropy::cli::Args;
+use noentropy::cli::args::Command;
 use noentropy::cli::handlers::handle_online_organization;
 use noentropy::files::{FileBatch, is_text_file, read_file_sample};
 use noentropy::settings::Config;
@@ -21,15 +21,13 @@ use tempfile::TempDir;
 // HELPER FUNCTIONS
 // ============================================================================
 
-/// Helper to create test Args with default values
-fn create_test_args(dry_run: bool, max_concurrent: usize) -> Args {
-    Args {
+/// Helper to create test Command::Organize
+fn create_test_organize_command(dry_run: bool, max_concurrent: usize) -> Command {
+    Command::Organize {
         dry_run,
         max_concurrent,
-        recursive: false,
-        undo: false,
-        change_key: false,
         offline: false,
+        recursive: false,
         path: None,
     }
 }
@@ -73,42 +71,64 @@ fn setup_test_dir_with_files(files: &[(&str, Option<&str>)]) -> (TempDir, PathBu
 }
 
 // ============================================================================
-// ARGS TESTS
+// ARGS/COMMAND TESTS
 // ============================================================================
 
 #[test]
-fn test_args_creation() {
-    let args = create_test_args(true, 10);
-    assert!(args.dry_run);
-    assert_eq!(args.max_concurrent, 10);
-    assert!(!args.recursive);
-    assert!(!args.offline);
+fn test_command_organize_creation() {
+    let command = create_test_organize_command(true, 10);
+    match &command {
+        Command::Organize {
+            dry_run,
+            max_concurrent,
+            offline,
+            recursive,
+            path: _,
+        } => {
+            assert!(*dry_run);
+            assert_eq!(*max_concurrent, 10);
+            assert!(!*offline);
+            assert!(!*recursive);
+        }
+        _ => panic!("Expected Command::Organize"),
+    }
 }
 
 #[test]
-fn test_args_default_max_concurrent() {
-    let args = create_test_args(false, 5);
-    assert_eq!(args.max_concurrent, 5);
+fn test_command_organize_default_max_concurrent() {
+    let command = create_test_organize_command(false, 5);
+    match &command {
+        Command::Organize { max_concurrent, .. } => {
+            assert_eq!(*max_concurrent, 5);
+        }
+        _ => panic!("Expected Command::Organize"),
+    }
 }
 
 #[test]
-fn test_args_all_flags() {
-    let args = Args {
+fn test_command_organize_all_flags() {
+    let command = Command::Organize {
         dry_run: true,
         max_concurrent: 10,
         recursive: true,
-        undo: true,
-        change_key: true,
         offline: true,
         path: Some(PathBuf::from("/test/path")),
     };
 
-    assert!(args.dry_run);
-    assert!(args.recursive);
-    assert!(args.undo);
-    assert!(args.change_key);
-    assert!(args.offline);
-    assert_eq!(args.path, Some(PathBuf::from("/test/path")));
+    match &command {
+        Command::Organize {
+            dry_run,
+            max_concurrent: _,
+            recursive,
+            offline: _,
+            path,
+        } => {
+            assert!(*dry_run);
+            assert!(*recursive);
+            assert_eq!(path, &Some(PathBuf::from("/test/path")));
+        }
+        _ => panic!("Expected Command::Organize"),
+    }
 }
 
 // ============================================================================
@@ -276,7 +296,7 @@ async fn test_handle_online_organization_requires_valid_api_key() {
     // This test validates that the function correctly handles API setup
     // In a real scenario, an invalid API key would result in an API error
     let (_temp_dir, dir_path) = setup_test_dir_with_files(&[("test.txt", Some("content"))]);
-    let args = create_test_args(true, 5);
+    let command = create_test_organize_command(true, 5);
     let config = create_test_config("invalid-api-key");
     let batch = create_file_batch(vec!["test.txt".to_string()], &dir_path);
     let mut cache = Cache::new();
@@ -284,9 +304,15 @@ async fn test_handle_online_organization_requires_valid_api_key() {
 
     // The function should attempt to call the API
     // With an invalid key, it will fail but should handle the error gracefully
-    let result =
-        handle_online_organization(&args, &config, batch, &dir_path, &mut cache, &mut undo_log)
-            .await;
+    let result = handle_online_organization(
+        &command,
+        &config,
+        batch,
+        &dir_path,
+        &mut cache,
+        &mut undo_log,
+    )
+    .await;
 
     // The function returns Ok(None) even on API errors (handled internally)
     assert!(result.is_ok());
@@ -296,16 +322,22 @@ async fn test_handle_online_organization_requires_valid_api_key() {
 async fn test_handle_online_organization_empty_batch() {
     let temp_dir = TempDir::new().unwrap();
     let dir_path = temp_dir.path();
-    let args = create_test_args(true, 5);
+    let command = create_test_organize_command(true, 5);
     let config = create_test_config("test-key");
     let batch = create_file_batch(vec![], dir_path);
     let mut cache = Cache::new();
     let mut undo_log = UndoLog::new();
 
     // Empty batch should be handled gracefully
-    let result =
-        handle_online_organization(&args, &config, batch, dir_path, &mut cache, &mut undo_log)
-            .await;
+    let result = handle_online_organization(
+        &command,
+        &config,
+        batch,
+        dir_path,
+        &mut cache,
+        &mut undo_log,
+    )
+    .await;
 
     assert!(result.is_ok());
 }
@@ -314,7 +346,7 @@ async fn test_handle_online_organization_empty_batch() {
 async fn test_handle_online_organization_dry_run() {
     let (_temp_dir, dir_path) =
         setup_test_dir_with_files(&[("photo.jpg", Some("image")), ("document.pdf", Some("pdf"))]);
-    let args = create_test_args(true, 5); // dry_run = true
+    let command = create_test_organize_command(true, 5); // dry_run = true
     let config = create_test_config("test-key");
     let batch = create_file_batch(
         vec!["photo.jpg".to_string(), "document.pdf".to_string()],
@@ -323,9 +355,15 @@ async fn test_handle_online_organization_dry_run() {
     let mut cache = Cache::new();
     let mut undo_log = UndoLog::new();
 
-    let result =
-        handle_online_organization(&args, &config, batch, &dir_path, &mut cache, &mut undo_log)
-            .await;
+    let result = handle_online_organization(
+        &command,
+        &config,
+        batch,
+        &dir_path,
+        &mut cache,
+        &mut undo_log,
+    )
+    .await;
 
     assert!(result.is_ok());
     // Files should still exist (dry run + API failure = no moves)

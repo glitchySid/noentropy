@@ -1,4 +1,5 @@
 use crate::cli::Args;
+use crate::cli::Command;
 use crate::cli::handlers::{handle_offline_organization, handle_online_organization};
 use crate::cli::path_utils::validate_and_normalize_path;
 use crate::files::FileBatch;
@@ -25,11 +26,17 @@ fn initialize_undo_log() -> Result<(UndoLog, std::path::PathBuf), Box<dyn std::e
 }
 
 async fn resolve_target_path(args: &Args, config: &Config) -> Option<std::path::PathBuf> {
-    let target_path = args
-        .path
-        .as_ref()
-        .cloned()
-        .unwrap_or_else(|| config.download_folder.clone());
+    let target_path = match &args.command {
+        Command::Organize { path, .. } => path
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| config.download_folder.clone()),
+        Command::Undo { path, .. } => path
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| config.download_folder.clone()),
+        _ => config.download_folder.clone(),
+    };
 
     match validate_and_normalize_path(&target_path).await {
         Ok(normalized) => Some(normalized),
@@ -41,7 +48,12 @@ async fn resolve_target_path(args: &Args, config: &Config) -> Option<std::path::
 }
 
 async fn determine_offline_mode(args: &Args, config: &Config) -> Option<bool> {
-    if args.offline {
+    let is_offline = match &args.command {
+        Command::Organize { offline, .. } => *offline,
+        _ => false,
+    };
+
+    if is_offline {
         println!("{}", "Using offline mode (--offline flag).".cyan());
         return Some(true);
     }
@@ -71,7 +83,12 @@ pub async fn handle_organization(
         return Ok(());
     };
 
-    let batch = FileBatch::from_path(&target_path, args.recursive);
+    let (batch, dry_run) = match &args.command {
+        Command::Organize {
+            recursive, dry_run, ..
+        } => (FileBatch::from_path(&target_path, *recursive), *dry_run),
+        _ => unreachable!(),
+    };
 
     if batch.filenames.is_empty() {
         println!("{}", "No files found to organize!".yellow());
@@ -85,10 +102,10 @@ pub async fn handle_organization(
     };
 
     let plan = if use_offline {
-        handle_offline_organization(batch, &target_path, args.dry_run, &mut undo_log)?
+        handle_offline_organization(batch, &target_path, dry_run, &mut undo_log)?
     } else {
         handle_online_organization(
-            &args,
+            &args.command,
             &config,
             batch,
             &target_path,

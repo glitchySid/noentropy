@@ -107,24 +107,65 @@ noentropy --help
 
 #### Windows
 
-**Option A: User-level (recommended)**
+**🚀 Option A: Automatic Installation (Recommended)**
 
-1. Move the extracted `noentropy.exe` to a folder, for example:
-   ```
-   C:\Users\<YourUsername>\AppData\Local\NoEntropy
-   ```
+The easiest way to install NoEntropy on Windows is using our automated installer scripts:
 
-2. Add to User PATH:
-   - Press `Win + R`, type `sysdm.cpl`, press Enter
-   - Click "Environment Variables"
-   - Under "User variables", select "Path", click "Edit"
-   - Click "New" and add:
-     ```
-     C:\Users\<YourUsername>\AppData\Local\NoEntropy
-     ```
-   - Click "OK" on all dialogs
+##### PowerShell Installer (Modern Windows)
+```powershell
+# Download and run the installer
+Invoke-WebRequest -Uri "https://github.com/glitchySid/noentropy/releases/latest/download/install.ps1" -OutFile "install.ps1"
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+.\install.ps1
 
-3. **Alternative using PowerShell (Admin):**
+# Or run directly (if execution policy allows)
+powershell -Command "iwr -Uri 'https://github.com/glitchySid/noentropy/releases/latest/download/install.ps1' | iex"
+```
+
+##### CMD Batch Installer (Legacy Windows)
+```cmd
+# Download and run the installer
+curl -L -o install.bat https://github.com/glitchySid/noentropy/releases/latest/download/install.bat
+install.bat
+
+# Or using PowerShell in CMD
+powershell -Command "Invoke-WebRequest -Uri 'https://github.com/glitchySid/noentropy/releases/latest/download/install.bat' -OutFile 'install.bat'; install.bat"
+```
+
+**Installer Features:**
+- ✅ Automatically downloads the latest version
+- ✅ Installs to `C:\Program Files\NoEntropy` (or custom path)
+- ✅ Adds to PATH automatically
+- ✅ Creates uninstaller for easy removal
+- ✅ Detects existing installations
+- ✅ Works with user and system-level installations
+
+**Installer Options:**
+```powershell
+# Install specific version
+.\install.ps1 -Version "1.0.4"
+
+# Install to custom path
+.\install.ps1 -InstallPath "C:\NoEntropy"
+
+# Force overwrite existing installation
+.\install.ps1 -Force
+
+# CMD installer options
+install.bat -version 1.0.4 -path "C:\NoEntropy" -force
+```
+
+---
+
+**Option B: Manual Installation**
+
+If you prefer manual installation or the automated installer doesn't work:
+
+1. **Download the Windows binary** from [releases](https://github.com/glitchySid/noentropy/releases)
+2. **Extract the archive** to get `noentropy.exe`
+3. **Choose installation location:**
+
+   **User-level (recommended):**
    ```powershell
    # Create installation directory
    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\AppData\Local\NoEntropy"
@@ -136,27 +177,40 @@ noentropy --help
    $path = [Environment]::GetEnvironmentVariable("PATH", "User")
    $newPath = "$path;$env:USERPROFILE\AppData\Local\NoEntropy"
    [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
-
-   # Verify
-   noentropy --help
    ```
 
-4. **Restart your terminal** or start a new Command Prompt/PowerShell window for the PATH changes to take effect.
+   **System-wide (requires Administrator):**
+   ```powershell
+   # Run PowerShell as Administrator
+   Move-Item -Path ".\noentropy.exe" -Destination "C:\Program Files\NoEntropy\noentropy.exe"
 
-**Option B: System-wide (requires Administrator)**
+   # Add to system PATH
+   $path = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+   $newPath = "$path;C:\Program Files\NoEntropy"
+   [Environment]::SetEnvironmentVariable("PATH", $newPath, "Machine")
+   ```
 
+4. **Restart your terminal** for PATH changes to take effect
+5. **Verify installation:** `noentropy --help`
+
+---
+
+**🗑️ Uninstallation**
+
+**Automatic Uninstallation:**
 ```powershell
-# Run PowerShell as Administrator
-Move-Item -Path ".\noentropy.exe" -Destination "C:\Program Files\NoEntropy\noentropy.exe"
+# Download and run uninstaller
+Invoke-WebRequest -Uri "https://github.com/glitchySid/noentropy/releases/latest/download/uninstall.ps1" -OutFile "uninstall.ps1"
+.\uninstall.ps1
 
-# Add to system PATH
-$path = [Environment]::GetEnvironmentVariable("PATH", "Machine")
-$newPath = "$path;C:\Program Files\NoEntropy"
-[Environment]::SetEnvironmentVariable("PATH", $newPath, "Machine")
-
-# Verify
-noentropy --help
+# Or run the uninstaller created during installation
+C:\Program Files\NoEntropy\uninstall.bat
 ```
+
+**Manual Uninstallation:**
+1. Remove installation directory: `C:\Program Files\NoEntropy` (or your custom path)
+2. Remove from PATH (via System Properties → Environment Variables)
+3. Remove configuration files: `%APPDATA%\NoEntropy` and `%USERPROFILE%\.config\noentropy`
 
 ### Step 4: Verify Installation
 

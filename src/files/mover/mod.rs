@@ -36,3 +36,12 @@ pub fn execute_move_auto(
     let confirmation = AutoConfirm;
     execution::execute_move_with_strategy(base_path, plan, undo_log, &confirmation)
 }
+
+/// Silent version for TUI - no console output
+pub fn execute_move_silent(
+    base_path: &Path,
+    plan: OrganizationPlan,
+    undo_log: Option<&mut UndoLog>,
+) -> Result<MoveSummary, MoveError> {
+    execution::execute_move_silent(base_path, plan, undo_log)
+}

@@ -6,9 +6,43 @@ This guide explains the internal architecture and processes that power NoEntropy
 
 NoEntropy uses a multi-stage pipeline that combines AI-powered categorization with intelligent caching and concurrent processing to efficiently organize your files.
 
+## User Interface Modes
+
+NoEntropy offers two interface modes:
+
+### TUI Mode (Default)
+
+When you run `noentropy` without a subcommand, it launches an interactive TUI:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ NoEntropy - AI File Organizer                              │
+├─────────────────────────────────────────────────────────────┤
+│ [Files] [Plan] [Progress]                                 │
+├─────────────────────────────────────────────────────────────┤
+│ File: document.pdf (1.2MB)                                │
+│ Content preview: ...                                      │
+│ Proposed category: Documents/Invoices                     │
+│                                                             │
+│ [↑/↓] Navigate  [Enter] Select                            │
+│ [c] Confirm all  [q] Quit                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**TUI Workflow:**
+1. **File Browser**: Browse files with keyboard navigation
+2. **Organization**: Press `o` to generate AI categorization
+3. **Plan Review**: Review proposed organization in Plan tab
+4. **Confirmation**: Press `c` to confirm and execute
+5. **Progress**: Monitor real-time progress in Progress tab
+
+### CLI Mode
+
+When you run `noentropy organize`, it uses the traditional command-line interface with step-by-step output.
+
 ## Organization Process
 
-NoEntropy follows a five-step process to organize your files:
+Both TUI and CLI modes follow the same five-step process:
 
 ```
 ┌─────────────────┐

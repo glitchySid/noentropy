@@ -5,12 +5,28 @@ use std::path::PathBuf;
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
+
+    /// Path to organize (defaults to configured download folder)
+    #[arg(global = true)]
+    pub path: Option<PathBuf>,
+
+    /// Preview changes without moving files
+    #[arg(long, short = 'd', global = true)]
+    pub dry_run: bool,
+
+    /// Recursively search files in subdirectory
+    #[arg(long, short = 'r', global = true)]
+    pub recursive: bool,
+
+    /// Use offline mode (extension-based categorization)
+    #[arg(long, short = 'o', global = true)]
+    pub offline: bool,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Organize downloads using AI categorization
+    /// Organize downloads using AI categorization (CLI mode)
     #[command(name = "organize")]
     Organize {
         #[arg(long, help = "Preview changes without moving files")]

@@ -50,6 +50,11 @@ noentropy/
 │   │   ├── mod.rs                # Storage module exports
 │   │   ├── cache.rs              # Caching system
 │   │   └── undo_log.rs           # Undo log management
+│   ├── tui/
+│   │   ├── mod.rs                # TUI module exports
+│   │   ├── app.rs                # TUI application state
+│   │   ├── events.rs             # TUI event handling
+│   │   └── ui.rs                 # TUI rendering
 │   ├── main.rs                   # Application entry point
 │   └── lib.rs                    # Library exports
 ├── Cargo.toml                    # Dependencies and project metadata
@@ -154,6 +159,24 @@ noentropy/
   - Unit tests for config parsing
   - Validation tests
   - Edge case handling
+
+### tui/
+**Purpose**: Terminal User Interface
+
+- **app.rs**: TUI application state
+  - Manages TUI state machine
+  - Handles file scanning and organization
+  - Tracks progress and statistics
+
+- **events.rs**: Event handling
+  - Manages terminal input/output
+  - Handles keyboard events
+  - Coordinates with organization logic
+
+- **ui.rs**: User interface rendering
+  - Implements ratatui widgets
+  - Handles layout and styling
+  - Renders file lists, plans, and progress
 
 ### storage/
 **Purpose**: Persistent data layer

@@ -4,6 +4,7 @@ pub mod gemini;
 pub mod models;
 pub mod settings;
 pub mod storage;
+pub mod tui;
 
 pub use cli::Args;
 pub use files::{
@@ -15,3 +16,4 @@ pub use gemini::GeminiError;
 pub use models::{FileCategory, FileMoveRecord, MoveStatus, OrganizationPlan};
 pub use settings::Config;
 pub use storage::{Cache, UndoLog};
+pub use tui::run_app;

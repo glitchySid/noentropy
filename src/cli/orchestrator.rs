@@ -27,11 +27,11 @@ fn initialize_undo_log() -> Result<(UndoLog, std::path::PathBuf), Box<dyn std::e
 
 async fn resolve_target_path(args: &Args, config: &Config) -> Option<std::path::PathBuf> {
     let target_path = match &args.command {
-        Command::Organize { path, .. } => path
+        Some(Command::Organize { path, .. }) => path
             .as_ref()
             .cloned()
             .unwrap_or_else(|| config.download_folder.clone()),
-        Command::Undo { path, .. } => path
+        Some(Command::Undo { path, .. }) => path
             .as_ref()
             .cloned()
             .unwrap_or_else(|| config.download_folder.clone()),
@@ -49,7 +49,7 @@ async fn resolve_target_path(args: &Args, config: &Config) -> Option<std::path::
 
 async fn determine_offline_mode(args: &Args, config: &Config) -> Option<bool> {
     let is_offline = match &args.command {
-        Command::Organize { offline, .. } => *offline,
+        Some(Command::Organize { offline, .. }) => *offline,
         _ => false,
     };
 
@@ -84,9 +84,9 @@ pub async fn handle_organization(
     };
 
     let (batch, dry_run) = match &args.command {
-        Command::Organize {
+        Some(Command::Organize {
             recursive, dry_run, ..
-        } => (FileBatch::from_path(&target_path, *recursive), *dry_run),
+        }) => (FileBatch::from_path(&target_path, *recursive), *dry_run),
         _ => unreachable!(),
     };
 
@@ -105,7 +105,7 @@ pub async fn handle_organization(
         handle_offline_organization(batch, &target_path, dry_run, &mut undo_log)?
     } else {
         handle_online_organization(
-            &args.command,
+            args.command.as_ref().unwrap(),
             &config,
             batch,
             &target_path,

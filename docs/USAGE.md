@@ -4,19 +4,19 @@ This guide covers all the ways you can use NoEntropy to organize your files.
 
 ## Quick Start
 
-The simplest way to organize your downloads folder:
-
-```bash
-./noentropy organize
-```
-
-Or use the shorthand (organize is the default command):
+The simplest way to organize your files is to launch the interactive TUI:
 
 ```bash
 ./noentropy
 ```
 
-This will:
+Or use the traditional CLI mode:
+
+```bash
+./noentropy organize
+```
+
+Both approaches will:
 1. Scan your configured downloads folder
 2. Ask Gemini AI to categorize files
 3. Show you a preview of the organization plan
@@ -25,23 +25,74 @@ This will:
 
 ## Commands
 
-NoEntropy uses a command-based interface. The available commands are:
+NoEntropy uses a command-based interface with both TUI and CLI modes:
 
 | Command | Description |
 |---------|-------------|
-| `organize` | Organize files using AI categorization |
+| (default) | Launch interactive TUI |
+| `organize` | Organize files using AI categorization (CLI mode) |
 | `undo` | Undo the last file organization |
 | `key` | Change the Gemini API key |
 | `duplicates` | Detect and delete duplicate files |
 
-## Organize Command
+## TUI Mode (Default)
 
-The `organize` command is the main command for file organization.
+Running `noentropy` without a subcommand launches the interactive TUI:
+
+```bash
+# Launch TUI
+./noentropy
+
+# TUI with dry-run mode (preview only)
+./noentropy --dry-run
+
+# TUI for specific folder
+./noentropy /path/to/folder
+
+# TUI with offline mode
+./noentropy --offline
+
+# TUI with recursive mode
+./noentropy --recursive
+```
+
+### TUI Features
+
+**File Browser Tab**
+- Scrollable list of files in the target directory
+- File details panel showing name, size, extension, and path
+- Keyboard navigation with `j/k` or `↑/↓` arrows
+- Press `o` to start organization
+
+**Plan Review Tab**
+- View the AI-generated organization plan
+- See where each file will be moved
+- Navigate with `j/k` or `↑/↓` arrows
+- Press `c` to confirm and execute the plan
+
+**Progress Tab**
+- Real-time progress bar during file moves
+- Statistics showing moved files, errors, and remaining files
+- Status updates throughout the process
+
+**Keyboard Shortcuts**
+- `j` or `↓`: Move selection down
+- `k` or `↑`: Move selection up
+- `Tab`: Switch to next tab
+- `Shift+Tab`: Switch to previous tab
+- `o`: Start organization (Files tab)
+- `c`: Confirm plan (Plan tab)
+- `r`: Restart after completion/error
+- `q`: Quit
+
+## Organize Command (CLI Mode)
+
+The `organize` command provides the traditional command-line interface for file organization.
 
 ### Basic Usage
 
 ```bash
-# Organize downloads folder (default)
+# Organize downloads folder (CLI mode)
 ./noentropy organize
 ```
 

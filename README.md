@@ -21,6 +21,10 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 - **📝 Text File Support** - Inspects 30+ text formats for better categorization
 - **✅ Interactive Confirmation** - Review organization plan before execution
 - **↩️ Undo Support** - Revert file organization changes if needed
+- **🖥️ Interactive TUI** - Visual file browser with real-time categorization preview
+- **🎮 Keyboard Navigation** - Intuitive keyboard controls for efficient workflow
+- **📊 Progress Tracking** - Real-time statistics and progress visualization
+- **🖥️ Interactive TUI** - Visual file browser with real-time categorization preview
 
 ## Quick Start
 
@@ -84,11 +88,11 @@ On first run, NoEntropy will guide you through an interactive setup to configure
 ### Basic Usage
 
 ```bash
-# Organize your downloads folder (default command)
-./noentropy organize
-
-# Shorthand - no subcommand needed for organize
+# Launch interactive TUI (default)
 ./noentropy
+
+# Organize your downloads folder (CLI mode)
+./noentropy organize
 
 # Organize a specific directory
 ./noentropy organize /path/to/folder
@@ -98,6 +102,19 @@ On first run, NoEntropy will guide you through an interactive setup to configure
 
 # Organize current directory with preview
 ./noentropy organize . --dry-run
+
+# Use TUI with dry-run mode
+./noentropy --dry-run
+
+# Use TUI for specific folder
+./noentropy /path/to/folder
+
+# Use TUI with offline mode
+./noentropy --offline
+
+# Use TUI with recursive mode
+./noentropy --recursive
+```
 
 # Undo the last organization
 ./noentropy undo
@@ -122,6 +139,25 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to NoEntropy
 
 ## Example Output
+
+### TUI Mode
+
+```
++---------------------------------------------------+
+| NoEntropy - AI File Organizer                    |
++---------------------------------------------------+
+| [Files] [Plan] [Progress]                         |
++---------------------------------------------------+
+| File: document.pdf (1.2MB)                        |
+| Content preview: ...                              |
+| Proposed category: Documents/Invoices             |
+|                                                   |
+| [↑/↓] Navigate  [Enter] Select                    |
+| [c] Confirm all  [q] Quit                         |
++---------------------------------------------------+
+```
+
+### CLI Mode
 
 ```bash
 $ ./noentropy organize
@@ -153,21 +189,55 @@ Done!
 
 ## Commands
 
-NoEntropy uses a command-based interface:
+NoEntropy uses a command-based interface with both CLI and TUI modes:
 
 | Command | Description |
 |---------|-------------|
-| `noentropy organize` | Organize files using AI categorization |
+| `noentropy` | Launch interactive TUI (default) |
+| `noentropy organize` | Organize files using AI categorization (CLI mode) |
 | `noentropy undo` | Undo the last file organization |
 | `noentropy key` | Change the Gemini API key |
 | `noentropy duplicates` | Detect and delete duplicate files |
 
-### Organize Command
+### TUI Mode (Default)
 
-Organize files in your downloads folder or any custom directory:
+Running `noentropy` without a subcommand launches the interactive TUI:
 
 ```bash
-# Organize downloads folder (default)
+# Launch TUI
+oentropy
+
+# TUI with dry-run mode (preview only)
+oentropy --dry-run
+
+# TUI for specific folder
+oentropy /path/to/folder
+
+# TUI with offline mode
+oentropy --offline
+
+# TUI with recursive mode
+oentropy --recursive
+```
+
+**TUI Features:**
+- **File Browser**: Scrollable list of files with details (name, size, extension, path)
+- **Organization Plan**: Preview AI categorization before confirming
+- **Progress Tracking**: Real-time progress bar and statistics
+- **Keyboard Navigation**:
+  - `j/k` or `↑/↓`: Navigate file list
+  - `Tab`: Switch between Files/Plan/Progress tabs
+  - `o`: Start organization (from Files tab)
+  - `c`: Confirm and execute plan (from Plan tab)
+  - `r`: Restart after completion/error
+  - `q`: Quit
+
+### Organize Command (CLI Mode)
+
+Organize files in your downloads folder or any custom directory using the traditional CLI interface:
+
+```bash
+# Organize downloads folder (CLI mode)
 noentropy organize
 
 # Organize specific directory
@@ -373,6 +443,61 @@ See the [Usage Guide](docs/USAGE.md) for detailed examples and workflows.
 
 ## Project Structure
 
+```
+noentropy/
+├── docs/               # Comprehensive documentation
+├── src/
+│   ├── cli/            # Command-line interface
+│   ├── files/          # File operations and detection
+│   ├── gemini/         # AI integration
+│   ├── models/         # Data structures
+│   ├── settings/       # Configuration management
+│   ├── storage/        # Caching and undo log
+│   └── tui/            # Terminal User Interface
+├── Cargo.toml
+└── README.md
+```
+
+See the [Development Guide](docs/DEVELOPMENT.md) for detailed architecture information.
+
+## Command-Line Reference
+
+```
+Usage: noentropy [OPTIONS] [PATH] [COMMAND]
+
+Commands:
+  organize    Organize downloads using AI categorization (CLI mode)
+  undo        Undo the last file organization
+  key         Change the API key
+  duplicates  Detect and delete duplicate files
+  help        Print this message or the help of the given subcommand(s)
+
+Arguments:
+  [PATH]  Path to organize (defaults to configured download folder)
+
+Options:
+  -d, --dry-run    Preview changes without moving files
+  -r, --recursive  Recursively search files in subdirectory
+  -o, --offline    Use offline mode (extension-based categorization)
+  -h, --help       Print help
+  -V, --version    Print version
+```
+
+### Organize Command Options
+
+```
+Usage: noentropy organize [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]  Path to organize (defaults to configured download folder)
+
+Options:
+  -d, --dry-run          Preview changes without moving files
+  -m, --max-concurrent <MAX_CONCURRENT>
+                          Maximum concurrent API requests (default: 5)
+  -o, --offline          Use offline mode (extension-based categorization)
+  -r, --recursive        Recursively search files in subdirectories
+  -h, --help             Print help
 ```
 noentropy/
 ├── docs/               # Comprehensive documentation

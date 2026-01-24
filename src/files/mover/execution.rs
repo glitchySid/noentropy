@@ -89,3 +89,59 @@ pub fn execute_move_with_strategy<C: ConfirmationStrategy>(
 
     Ok(summary)
 }
+
+/// Silent version for TUI - no console output
+pub fn execute_move_silent(
+    base_path: &Path,
+    plan: OrganizationPlan,
+    mut undo_log: Option<&mut UndoLog>,
+) -> Result<MoveSummary, MoveError> {
+    if plan.files.is_empty() {
+        return Ok(MoveSummary::new());
+    }
+
+    let mut summary = MoveSummary::new();
+
+    for item in plan.files {
+        let source = base_path.join(&item.filename);
+        let final_path = base_path.join(&item.category);
+        let target = build_target_path(
+            base_path,
+            &item.category,
+            &item.sub_category,
+            &item.filename,
+        );
+
+        if ensure_directory_exists(&final_path).is_err() {
+            summary.errored();
+            continue;
+        }
+
+        match fs::metadata(&source) {
+            Ok(metadata) if metadata.is_file() => {
+                match move_file_cross_platform(&source, &target) {
+                    Ok(_) => {
+                        summary.moved();
+                        if let Some(ref mut log) = undo_log {
+                            log.record_move(source, target);
+                        }
+                    }
+                    Err(_) => {
+                        summary.errored();
+                        if let Some(ref mut log) = undo_log {
+                            log.record_failed_move(source, target);
+                        }
+                    }
+                }
+            }
+            Ok(_) => {
+                // Not a file, skip silently
+            }
+            Err(_) => {
+                summary.errored();
+            }
+        }
+    }
+
+    Ok(summary)
+}

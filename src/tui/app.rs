@@ -145,10 +145,10 @@ impl App {
     }
 
     pub fn next_file(&mut self) {
-        if let Some(ref batch) = self.batch {
-            if self.file_list_state < batch.filenames.len().saturating_sub(1) {
-                self.file_list_state += 1;
-            }
+        if let Some(ref batch) = self.batch
+            && self.file_list_state < batch.filenames.len().saturating_sub(1)
+        {
+            self.file_list_state += 1;
         }
     }
 
@@ -159,10 +159,10 @@ impl App {
     }
 
     pub fn next_plan_item(&mut self) {
-        if let Some(ref plan) = self.plan {
-            if self.plan_list_state < plan.files.len().saturating_sub(1) {
-                self.plan_list_state += 1;
-            }
+        if let Some(ref plan) = self.plan
+            && self.plan_list_state < plan.files.len().saturating_sub(1)
+        {
+            self.plan_list_state += 1;
         }
     }
 

@@ -97,73 +97,73 @@ async fn run_event_loop(
         terminal.draw(|frame| draw(frame, app))?;
 
         // Non-blocking event poll with timeout
-        if event::poll(Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind != KeyEventKind::Press {
-                    continue;
+        if event::poll(Duration::from_millis(100))?
+            && let Event::Key(key) = event::read()?
+        {
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
+
+            match key.code {
+                KeyCode::Char('q') => {
+                    app.should_quit = true;
                 }
+                KeyCode::Tab => {
+                    app.next_tab();
+                }
+                KeyCode::BackTab => {
+                    app.previous_tab();
+                }
+                KeyCode::Down | KeyCode::Char('j') => match app.tab {
+                    Tab::Files => app.next_file(),
+                    Tab::Plan => app.next_plan_item(),
+                    Tab::Progress => {}
+                },
+                KeyCode::Up | KeyCode::Char('k') => match app.tab {
+                    Tab::Files => app.previous_file(),
+                    Tab::Plan => app.previous_plan_item(),
+                    Tab::Progress => {}
+                },
+                KeyCode::Char('o') => {
+                    if matches!(app.state, AppState::FileList) {
+                        // Start organization
+                        app.start_fetching();
+                        terminal.draw(|frame| draw(frame, app))?;
 
-                match key.code {
-                    KeyCode::Char('q') => {
-                        app.should_quit = true;
-                    }
-                    KeyCode::Tab => {
-                        app.next_tab();
-                    }
-                    KeyCode::BackTab => {
-                        app.previous_tab();
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => match app.tab {
-                        Tab::Files => app.next_file(),
-                        Tab::Plan => app.next_plan_item(),
-                        Tab::Progress => {}
-                    },
-                    KeyCode::Up | KeyCode::Char('k') => match app.tab {
-                        Tab::Files => app.previous_file(),
-                        Tab::Plan => app.previous_plan_item(),
-                        Tab::Progress => {}
-                    },
-                    KeyCode::Char('o') => {
-                        if matches!(app.state, AppState::FileList) {
-                            // Start organization
-                            app.start_fetching();
-                            terminal.draw(|frame| draw(frame, app))?;
-
-                            match fetch_organization_plan(app, config, cache).await {
-                                Ok(plan) => {
-                                    app.set_plan(plan);
-                                }
-                                Err(e) => {
-                                    app.set_error(e.to_string());
-                                }
+                        match fetch_organization_plan(app, config, cache).await {
+                            Ok(plan) => {
+                                app.set_plan(plan);
+                            }
+                            Err(e) => {
+                                app.set_error(e.to_string());
                             }
                         }
                     }
-                    KeyCode::Char('c') => {
-                        if matches!(app.state, AppState::PlanReview) {
-                            // Confirm and execute
-                            app.start_moving();
-                            terminal.draw(|frame| draw(frame, app))?;
-
-                            execute_organization(app, undo_log);
-                            app.finish();
-                        }
-                    }
-                    KeyCode::Char('r') => {
-                        if matches!(app.state, AppState::Done | AppState::Error(_)) {
-                            // Restart
-                            *app = App::new(
-                                config.clone(),
-                                app.target_path.clone(),
-                                app.recursive,
-                                app.dry_run,
-                                app.offline,
-                            );
-                            app.scan_files();
-                        }
-                    }
-                    _ => {}
                 }
+                KeyCode::Char('c') => {
+                    if matches!(app.state, AppState::PlanReview) {
+                        // Confirm and execute
+                        app.start_moving();
+                        terminal.draw(|frame| draw(frame, app))?;
+
+                        execute_organization(app, undo_log);
+                        app.finish();
+                    }
+                }
+                KeyCode::Char('r') => {
+                    if matches!(app.state, AppState::Done | AppState::Error(_)) {
+                        // Restart
+                        *app = App::new(
+                            config.clone(),
+                            app.target_path.clone(),
+                            app.recursive,
+                            app.dry_run,
+                            app.offline,
+                        );
+                        app.scan_files();
+                    }
+                }
+                _ => {}
             }
         }
 

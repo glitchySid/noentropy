@@ -4,13 +4,17 @@ This guide covers all the ways you can use NoEntropy to organize your files.
 
 ## Quick Start
 
-The simplest way to organize your files is to launch the interactive TUI:
+NoEntropy offers two interface modes:
+
+### TUI Mode (Default)
+The interactive Terminal User Interface provides a visual file browser:
 
 ```bash
 ./noentropy
 ```
 
-Or use the traditional CLI mode:
+### CLI Mode (Commands)
+Traditional command-line interface for automation and scripting:
 
 ```bash
 ./noentropy organize
@@ -18,7 +22,7 @@ Or use the traditional CLI mode:
 
 Both approaches will:
 1. Scan your configured downloads folder
-2. Ask Gemini AI to categorize files
+2. Ask Gemini AI to categorize files (or use extensions in offline mode)
 3. Show you a preview of the organization plan
 4. Ask for confirmation before moving files
 5. Execute the organization if you approve
@@ -63,6 +67,7 @@ Running `noentropy` without a subcommand launches the interactive TUI:
 - File details panel showing name, size, extension, and path
 - Keyboard navigation with `j/k` or `↑/↓` arrows
 - Press `o` to start organization
+- Press `t` to toggle offline mode (AI vs extension-based categorization)
 
 **Plan Review Tab**
 - View the AI-generated organization plan
@@ -74,6 +79,7 @@ Running `noentropy` without a subcommand launches the interactive TUI:
 - Real-time progress bar during file moves
 - Statistics showing moved files, errors, and remaining files
 - Status updates throughout the process
+- Press `r` to restart when complete or `q` to quit
 
 **Keyboard Shortcuts**
 - `j` or `↓`: Move selection down
@@ -83,7 +89,14 @@ Running `noentropy` without a subcommand launches the interactive TUI:
 - `o`: Start organization (Files tab)
 - `c`: Confirm plan (Plan tab)
 - `r`: Restart after completion/error
+- `t`: Toggle offline mode (switch between AI and extension-based categorization)
 - `q`: Quit
+
+**Offline Mode Toggle**
+The TUI includes a live offline mode toggle:
+- Press `t` to switch between online (AI-powered) and offline (extension-based) categorization
+- Status is displayed in the TUI interface
+- Allows you to test categorization without API calls or when internet is unavailable
 
 ## Organize Command (CLI Mode)
 

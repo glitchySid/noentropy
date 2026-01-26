@@ -57,6 +57,9 @@ fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
         .block(Block::default().borders(Borders::ALL).title("View"));
 
     frame.render_widget(tabs, area);
+
+    // Draw offline mode toggle
+    draw_offline_toggle(frame, app, area);
 }
 
 fn draw_main_content(frame: &mut Frame, app: &App, area: Rect) {
@@ -312,11 +315,43 @@ fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(status, area);
 }
 
+fn draw_offline_toggle(frame: &mut Frame, app: &App, area: Rect) {
+    let toggle_text = if app.offline {
+        "Offline Mode: ON"
+    } else {
+        "Offline Mode: OFF"
+    };
+
+    let toggle_style = if app.offline {
+        Style::default().fg(Color::Green)
+    } else {
+        Style::default().fg(Color::Red)
+    };
+
+    let toggle = Paragraph::new(toggle_text)
+        .style(toggle_style)
+        .block(Block::default().borders(Borders::ALL).title("Mode"));
+
+    // Position the toggle in the top-right corner
+    let toggle_area = Rect {
+        x: area.x + area.width - 20,
+        y: area.y,
+        width: 20,
+        height: 3,
+    };
+
+    frame.render_widget(toggle, toggle_area);
+}
+
 fn draw_help_bar(frame: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.state {
-        AppState::FileList => "[o] Organize  [Tab] Switch view  [j/k] Navigate  [q] Quit",
+        AppState::FileList => {
+            "[o] Organize  [t] Toggle offline  [Tab] Switch view  [j/k] Navigate  [q] Quit"
+        }
         AppState::Fetching => "Fetching... Please wait",
-        AppState::PlanReview => "[c] Confirm  [Tab] Switch view  [j/k] Navigate  [q] Quit",
+        AppState::PlanReview => {
+            "[c] Confirm  [t] Toggle offline  [Tab] Switch view  [j/k] Navigate  [q] Quit"
+        }
         AppState::Moving => "Moving files... Please wait",
         AppState::Done => "[q] Quit  [r] Restart",
         AppState::Error(_) => "[q] Quit  [r] Retry",

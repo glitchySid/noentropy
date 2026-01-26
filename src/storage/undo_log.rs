@@ -29,26 +29,34 @@ impl UndoLog {
         }
     }
 
-    pub fn load_or_create(undo_log_path: &Path) -> Self {
+    pub fn load_or_create(undo_log_path: &Path, silent: bool) -> Self {
         if undo_log_path.exists() {
             match fs::read_to_string(undo_log_path) {
                 Ok(content) => match serde_json::from_str::<UndoLog>(&content) {
                     Ok(log) => {
-                        println!("Loaded undo log with {} entries", log.get_completed_count());
+                        if !silent {
+                            println!("Loaded undo log with {} entries", log.get_completed_count());
+                        }
                         log
                     }
                     Err(_) => {
-                        println!("Undo log corrupted, creating new log");
+                        if !silent {
+                            println!("Undo log corrupted, creating new log");
+                        }
                         Self::new()
                     }
                 },
                 Err(_) => {
-                    println!("Failed to read undo log, creating new log");
+                    if !silent {
+                        println!("Failed to read undo log, creating new log");
+                    }
                     Self::new()
                 }
             }
         } else {
-            println!("Creating new undo log file");
+            if !silent {
+                println!("Creating new undo log file");
+            }
             Self::new()
         }
     }

@@ -12,7 +12,7 @@ fn initialize_cache() -> Result<(Cache, std::path::PathBuf), Box<dyn std::error:
     const CACHE_RETENTION_SECONDS: u64 = 7 * 24 * 60 * 60;
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
-    let mut cache = Cache::load_or_create(&cache_path);
+    let mut cache = Cache::load_or_create(&cache_path, false);
     cache.cleanup_old_entries(CACHE_RETENTION_SECONDS);
     Ok((cache, cache_path))
 }
@@ -20,7 +20,7 @@ fn initialize_cache() -> Result<(Cache, std::path::PathBuf), Box<dyn std::error:
 fn initialize_undo_log() -> Result<(UndoLog, std::path::PathBuf), Box<dyn std::error::Error>> {
     const UNDO_LOG_RETENTION_SECONDS: u64 = 30 * 24 * 60 * 60;
     let undo_log_path = Config::get_undo_log_path()?;
-    let mut undo_log = UndoLog::load_or_create(&undo_log_path);
+    let mut undo_log = UndoLog::load_or_create(&undo_log_path, false);
     undo_log.cleanup_old_entries(UNDO_LOG_RETENTION_SECONDS);
     Ok((undo_log, undo_log_path))
 }

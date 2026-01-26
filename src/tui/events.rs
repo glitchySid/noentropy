@@ -56,11 +56,11 @@ pub async fn run_app(
     // Initialize cache and undo log
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
-    let mut cache = Cache::load_or_create(&cache_path);
+    let mut cache = Cache::load_or_create(&cache_path, true);
     cache.cleanup_old_entries(CACHE_RETENTION_SECONDS);
 
     let undo_log_path = Config::get_undo_log_path()?;
-    let mut undo_log = UndoLog::load_or_create(&undo_log_path);
+    let mut undo_log = UndoLog::load_or_create(&undo_log_path, true);
     undo_log.cleanup_old_entries(UNDO_LOG_RETENTION_SECONDS);
 
     // Main event loop
@@ -162,6 +162,12 @@ async fn run_event_loop(
                         );
                         app.scan_files();
                     }
+                }
+                KeyCode::Char('t') => {
+                    // Toggle offline mode
+                    app.offline = !app.offline;
+                    let mode_text = if app.offline { "ON" } else { "OFF" };
+                    app.status_message = format!("Offline mode: {}", mode_text);
                 }
                 _ => {}
             }

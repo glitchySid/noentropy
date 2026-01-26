@@ -16,7 +16,7 @@ pub async fn handle_undo(
         return Ok(());
     }
 
-    let mut undo_log = UndoLog::load_or_create(&undo_log_path);
+    let mut undo_log = UndoLog::load_or_create(&undo_log_path, false);
 
     if !undo_log.has_completed_moves() {
         println!("{}", "No completed moves to undo.".yellow());

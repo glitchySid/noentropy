@@ -24,6 +24,12 @@ pub struct Config {
     pub download_folder: PathBuf,
     #[serde(default = "default_categories")]
     pub categories: Vec<String>,
+    #[serde(default = "default_deep_inspect")]
+    pub deep_inspect: bool,
+}
+
+fn default_deep_inspect() -> bool {
+    false
 }
 
 impl Config {
@@ -193,6 +199,19 @@ impl Default for Config {
             api_key: String::new(),
             download_folder: PathBuf::new(),
             categories: default_categories(),
+            deep_inspect: default_deep_inspect(),
         }
+    }
+}
+
+impl Config {
+    pub fn should_deep_inspect(&self, cli_skip: bool, cli_no_skip: bool) -> bool {
+        if cli_skip {
+            return false;
+        }
+        if cli_no_skip {
+            return true;
+        }
+        self.deep_inspect
     }
 }

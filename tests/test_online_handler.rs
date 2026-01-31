@@ -29,6 +29,8 @@ fn create_test_organize_command(dry_run: bool, max_concurrent: usize) -> Command
         offline: false,
         recursive: false,
         path: None,
+        skip_deep_inspect: true,
+        no_skip_deep_inspect: false,
     }
 }
 
@@ -45,6 +47,7 @@ fn create_test_config(api_key: &str) -> Config {
             "Video".to_string(),
             "Archives".to_string(),
         ],
+        deep_inspect: false,
     }
 }
 
@@ -83,12 +86,15 @@ fn test_command_organize_creation() {
             max_concurrent,
             offline,
             recursive,
+            skip_deep_inspect,
+            no_skip_deep_inspect: _,
             path: _,
         } => {
             assert!(*dry_run);
             assert_eq!(*max_concurrent, 10);
             assert!(!*offline);
             assert!(!*recursive);
+            assert!(*skip_deep_inspect);
         }
         _ => panic!("Expected Command::Organize"),
     }
@@ -113,6 +119,8 @@ fn test_command_organize_all_flags() {
         recursive: true,
         offline: true,
         path: Some(PathBuf::from("/test/path")),
+        skip_deep_inspect: true,
+        no_skip_deep_inspect: false,
     };
 
     match &command {
@@ -121,10 +129,13 @@ fn test_command_organize_all_flags() {
             max_concurrent: _,
             recursive,
             offline: _,
+            skip_deep_inspect,
+            no_skip_deep_inspect: _,
             path,
         } => {
             assert!(*dry_run);
             assert!(*recursive);
+            assert!(*skip_deep_inspect);
             assert_eq!(path, &Some(PathBuf::from("/test/path")));
         }
         _ => panic!("Expected Command::Organize"),
@@ -149,6 +160,7 @@ fn test_config_with_custom_categories() {
         api_key: "key".to_string(),
         download_folder: PathBuf::from("/test"),
         categories: vec!["Custom1".to_string(), "Custom2".to_string()],
+        deep_inspect: false,
     };
 
     assert_eq!(config.categories.len(), 2);
@@ -161,6 +173,7 @@ fn test_config_empty_categories() {
         api_key: "key".to_string(),
         download_folder: PathBuf::new(),
         categories: vec![],
+        deep_inspect: false,
     };
 
     assert!(config.categories.is_empty());

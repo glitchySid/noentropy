@@ -10,23 +10,17 @@ use futures::future::join_all;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-/// Handles the online (AI-powered) organization of files.
-///
-/// This function uses the Gemini API to intelligently categorize files based on
-/// their names and content. It supports deep inspection for text files, where the
-/// AI will read file contents to suggest sub-categories.
-///
-/// # Arguments
-/// * `command` - Command enum containing organize-specific arguments
-/// * `config` - Configuration containing API key and categories
-/// * `batch` - The batch of files to organize
-/// * `target_path` - The target directory for organized files
-/// * `cache` - Cache for storing/retrieving AI responses
-/// * `undo_log` - Log for tracking file moves (for undo functionality)
-///
-/// # Returns
-/// * `Ok(None)` - Organization completed (result printed to console)
-/// * `Err(_)` - An error occurred during organization
+fn get_deep_inspect_flags(command: &Command) -> (bool, bool) {
+    match command {
+        Command::Organize {
+            skip_deep_inspect,
+            no_skip_deep_inspect,
+            ..
+        } => (*skip_deep_inspect, *no_skip_deep_inspect),
+        _ => (false, false),
+    }
+}
+
 pub async fn handle_online_organization(
     command: &Command,
     config: &Config,
@@ -43,6 +37,11 @@ pub async fn handle_online_organization(
         } => (*max_concurrent, *dry_run),
         _ => unreachable!(),
     };
+    
+    let (skip_flag, no_skip_flag) = get_deep_inspect_flags(command);
+    let should_deep_inspect = config.should_deep_inspect(skip_flag, no_skip_flag);
+    
+    let paths = batch.paths.clone();
 
     let client = GeminiClient::new(&config.api_key, &config.categories);
 
@@ -59,53 +58,11 @@ pub async fn handle_online_organization(
         }
     };
 
-    println!(
-        "{}",
-        "Gemini Plan received! Performing deep inspection...".green()
-    );
-
-    let client_arc: Arc<GeminiClient> = Arc::new(client);
-    let semaphore: Arc<tokio::sync::Semaphore> =
-        Arc::new(tokio::sync::Semaphore::new(max_concurrent));
-
-    let tasks: Vec<_> = plan
-        .files
-        .iter_mut()
-        .zip(batch.paths.iter())
-        .map(
-            |(file_category, path): (&mut crate::models::FileCategory, &PathBuf)| {
-                let client: Arc<GeminiClient> = Arc::clone(&client_arc);
-                let filename: String = file_category.filename.clone();
-                let category: String = file_category.category.clone();
-                let path: PathBuf = path.clone();
-                let semaphore: Arc<tokio::sync::Semaphore> = Arc::clone(&semaphore);
-
-                async move {
-                    if is_text_file(&path) {
-                        let _permit = semaphore.acquire().await.unwrap();
-                        if let Some(content) = read_file_sample(&path, 5000) {
-                            println!("Reading content of {}...", filename.green());
-                            client
-                                .get_ai_sub_category(&filename, &category, &content)
-                                .await
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        String::new()
-                    }
-                }
-            },
-        )
-        .collect();
-
-    let sub_categories: Vec<String> = join_all(tasks).await;
-
-    for (file_category, sub_category) in plan.files.iter_mut().zip(sub_categories) {
-        file_category.sub_category = sub_category;
+    if should_deep_inspect {
+        perform_deep_inspection(&mut plan, &paths, &client, max_concurrent).await;
     }
 
-    println!("{}", "Deep inspection complete! Moving Files.....".green());
+    println!("{}", "Moving Files.....".green());
 
     if dry_run {
         println!("{} Dry run mode - skipping file moves.", "INFO:".cyan());
@@ -115,4 +72,53 @@ pub async fn handle_online_organization(
     println!("{}", "Done!".green().bold());
 
     Ok(None)
+}
+
+async fn perform_deep_inspection(
+    plan: &mut OrganizationPlan,
+    paths: &[PathBuf],
+    client: &GeminiClient,
+    max_concurrent: usize,
+) {
+    println!("{}", "Gemini Plan received! Performing deep inspection...".green());
+
+    let client_arc = Arc::new(client.clone());
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(max_concurrent));
+
+    let tasks: Vec<_> = plan
+        .files
+        .iter_mut()
+        .zip(paths.iter())
+        .map(|(file_category, path)| {
+            let client = Arc::clone(&client_arc);
+            let filename = file_category.filename.clone();
+            let category = file_category.category.clone();
+            let path = path.clone();
+            let semaphore = Arc::clone(&semaphore);
+
+            async move {
+                if is_text_file(&path) {
+                    let _permit = semaphore.acquire().await.unwrap();
+                    if let Some(content) = read_file_sample(&path, 5000) {
+                        println!("Reading content of {}...", filename.green());
+                        client
+                            .get_ai_sub_category(&filename, &category, &content)
+                            .await
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                }
+            }
+        })
+        .collect();
+
+    let sub_categories: Vec<String> = join_all(tasks).await;
+
+    for (file_category, sub_category) in plan.files.iter_mut().zip(sub_categories) {
+        file_category.sub_category = sub_category;
+    }
+
+    println!("{}", "Deep inspection complete!".green());
 }

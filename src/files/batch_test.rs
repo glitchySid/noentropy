@@ -53,8 +53,10 @@ fn test_file_batch_from_path_recursive() {
     assert_eq!(batch.count(), 4);
     assert!(batch.filenames.contains(&"file1.txt".to_string()));
     assert!(batch.filenames.contains(&"subdir1/file2.rs".to_string()));
-    assert!(batch
-        .filenames
-        .contains(&"subdir1/nested/file3.md".to_string()));
+    assert!(
+        batch
+            .filenames
+            .contains(&"subdir1/nested/file3.md".to_string())
+    );
     assert!(batch.filenames.contains(&"subdir2/file4.py".to_string()));
 }

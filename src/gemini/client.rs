@@ -3,6 +3,7 @@ use crate::gemini::prompt::PromptBuilder;
 use crate::gemini::types::{GeminiResponse, OrganizationPlanResponse};
 use crate::models::OrganizationPlan;
 use crate::storage::Cache;
+use log::{debug, error, info};
 use reqwest::Client;
 use serde_json::json;
 use std::path::Path;
@@ -35,10 +36,24 @@ impl GeminiClient {
             "generationConfig": { "maxOutputTokens": 1 }
         });
 
+        info!("Checking Gemini API connectivity");
+        debug!("Connectivity check URL: {}", url);
+
         match self.client.post(&url).json(&request_body).send().await {
-            Ok(response) if response.status().is_success() => Ok(()),
-            Ok(response) => Err(GeminiError::from_response(response).await),
-            Err(e) => Err(GeminiError::NetworkError(e)),
+            Ok(response) => {
+                if response.status().is_success() {
+                    info!("Gemini API connectivity check successful");
+                    Ok(())
+                } else {
+                    let error = GeminiError::from_response(response).await;
+                    error!("Gemini API connectivity check failed: {}", error);
+                    Err(error)
+                }
+            }
+            Err(e) => {
+                error!("Network error during connectivity check: {}", e);
+                Err(GeminiError::NetworkError(e))
+            }
         }
     }
 

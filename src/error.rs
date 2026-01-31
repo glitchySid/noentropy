@@ -52,6 +52,15 @@ pub enum AppError {
 
     #[error("Unknown error: {0}")]
     Unknown(String),
+
+    #[error("File processing error: {0}")]
+    FileProcessingError(String),
+
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+
+    #[error("Network timeout: {0}")]
+    NetworkTimeout(String),
 }
 
 impl From<Box<dyn std::error::Error>> for AppError {

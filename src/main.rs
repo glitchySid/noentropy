@@ -8,6 +8,8 @@ use noentropy::tui::run_app;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    env_logger::init();
+    log::info!("Starting noentropy application");
     let args = Args::parse();
 
     match &args.command {

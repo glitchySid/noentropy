@@ -2,19 +2,43 @@ use super::*;
 
 #[test]
 fn test_categorize_known_extensions() {
-    assert_eq!(categorize_by_extension("photo.jpg"), Some("Images"));
-    assert_eq!(categorize_by_extension("document.pdf"), Some("Documents"));
-    assert_eq!(categorize_by_extension("setup.exe"), Some("Installers"));
-    assert_eq!(categorize_by_extension("song.mp3"), Some("Music"));
-    assert_eq!(categorize_by_extension("movie.mp4"), Some("Video"));
-    assert_eq!(categorize_by_extension("archive.zip"), Some("Archives"));
-    assert_eq!(categorize_by_extension("main.rs"), Some("Code"));
+    assert_eq!(
+        categorize_by_extension("photo.jpg"),
+        Some("Images".to_string())
+    );
+    assert_eq!(
+        categorize_by_extension("document.pdf"),
+        Some("Documents".to_string())
+    );
+    assert_eq!(
+        categorize_by_extension("setup.exe"),
+        Some("Installers".to_string())
+    );
+    assert_eq!(
+        categorize_by_extension("song.mp3"),
+        Some("Music".to_string())
+    );
+    assert_eq!(
+        categorize_by_extension("movie.mp4"),
+        Some("Video".to_string())
+    );
+    assert_eq!(
+        categorize_by_extension("archive.zip"),
+        Some("Archives".to_string())
+    );
+    assert_eq!(categorize_by_extension("main.rs"), Some("Code".to_string()));
 }
 
 #[test]
 fn test_categorize_case_insensitive() {
-    assert_eq!(categorize_by_extension("PHOTO.JPG"), Some("Images"));
-    assert_eq!(categorize_by_extension("Photo.Png"), Some("Images"));
+    assert_eq!(
+        categorize_by_extension("PHOTO.JPG"),
+        Some("Images".to_string())
+    );
+    assert_eq!(
+        categorize_by_extension("Photo.Png"),
+        Some("Images".to_string())
+    );
 }
 
 #[test]

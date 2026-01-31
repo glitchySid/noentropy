@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::LazyLock;
+use string_interner::{DefaultSymbol, StringInterner};
+
+type Sym = DefaultSymbol;
 
 use crate::models::{FileCategory, OrganizationPlan};
 
@@ -25,40 +28,49 @@ const CODE_EXTENSIONS: &[&str] = &[
     "json", "yaml", "yml", "toml", "xml", "sh", "bash", "sql",
 ];
 
-fn build_extension_map() -> HashMap<&'static str, &'static str> {
+fn build_extension_map() -> (HashMap<&'static str, Sym>, StringInterner) {
     let mut map = HashMap::new();
+    let mut interner = StringInterner::new();
+
+    let images_sym = interner.get_or_intern("Images");
+    let documents_sym = interner.get_or_intern("Documents");
+    let installers_sym = interner.get_or_intern("Installers");
+    let music_sym = interner.get_or_intern("Music");
+    let video_sym = interner.get_or_intern("Video");
+    let archives_sym = interner.get_or_intern("Archives");
+    let code_sym = interner.get_or_intern("Code");
 
     for &ext in IMAGE_EXTENSIONS {
-        map.insert(ext, "Images");
+        map.insert(ext, images_sym);
     }
     for &ext in DOCUMENT_EXTENSIONS {
-        map.insert(ext, "Documents");
+        map.insert(ext, documents_sym);
     }
     for &ext in INSTALLER_EXTENSIONS {
-        map.insert(ext, "Installers");
+        map.insert(ext, installers_sym);
     }
     for &ext in MUSIC_EXTENSIONS {
-        map.insert(ext, "Music");
+        map.insert(ext, music_sym);
     }
     for &ext in VIDEO_EXTENSIONS {
-        map.insert(ext, "Video");
+        map.insert(ext, video_sym);
     }
     for &ext in ARCHIVE_EXTENSIONS {
-        map.insert(ext, "Archives");
+        map.insert(ext, archives_sym);
     }
     for &ext in CODE_EXTENSIONS {
-        map.insert(ext, "Code");
+        map.insert(ext, code_sym);
     }
 
-    map
+    (map, interner)
 }
 
-static EXTENSION_MAP: LazyLock<HashMap<&'static str, &'static str>> =
+static EXTENSION_MAP: LazyLock<(HashMap<&'static str, Sym>, StringInterner)> =
     LazyLock::new(build_extension_map);
 
 /// Categorizes a file by its extension.
 /// Returns `Some(category)` if the extension is known, `None` otherwise.
-pub fn categorize_by_extension(filename: &str) -> Option<&'static str> {
+pub fn categorize_by_extension(filename: &str) -> Option<String> {
     // Early return for empty or invalid filenames
     if filename.is_empty() {
         return None;
@@ -75,7 +87,10 @@ pub fn categorize_by_extension(filename: &str) -> Option<&'static str> {
         ext.to_string()
     };
 
-    EXTENSION_MAP.get(ext_lower.as_str()).copied()
+    EXTENSION_MAP
+        .0
+        .get(ext_lower.as_str())
+        .map(|&sym| EXTENSION_MAP.1.resolve(sym).unwrap().to_string())
 }
 
 /// Result of offline categorization
@@ -95,7 +110,7 @@ pub fn categorize_files_offline(filenames: Vec<String>) -> OfflineCategorization
             Some(category) => {
                 files.push(FileCategory {
                     filename,
-                    category: category.to_string(),
+                    category,
                     sub_category: String::new(),
                 });
             }

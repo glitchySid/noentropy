@@ -127,12 +127,18 @@ impl Cache {
 
     fn generate_cache_key(filenames: &[String]) -> String {
         let mut hasher = Hasher::new();
-        let mut sorted: Vec<_> = filenames.iter().collect();
-        sorted.sort();
 
-        for filename in sorted {
+        // Only sort if we have multiple files to ensure consistent ordering
+        if filenames.len() > 1 {
+            let mut sorted: Vec<_> = filenames.iter().collect();
+            sorted.sort();
+
+            for filename in sorted {
+                hasher.update(filename.as_bytes());
+                hasher.update(b"|");
+            }
+        } else if let Some(filename) = filenames.first() {
             hasher.update(filename.as_bytes());
-            hasher.update(b"|");
         }
 
         hasher.finalize().to_hex().to_string()

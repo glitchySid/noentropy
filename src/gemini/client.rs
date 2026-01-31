@@ -143,11 +143,7 @@ impl GeminiClient {
         }
 
         let total_files = filenames.len();
-        let batches: Vec<Vec<String>> = filenames
-            .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
-            .collect();
-        let total_batches = batches.len();
+        let total_batches = total_files.div_ceil(BATCH_SIZE);
 
         println!(
             "Processing {} files in {} batches...",
@@ -156,11 +152,14 @@ impl GeminiClient {
 
         let mut all_files = Vec::with_capacity(total_files);
 
-        for (batch_index, batch) in batches.into_iter().enumerate() {
-            let batch_num = batch_index + 1;
+        for batch_index in 0..total_batches {
+            let start = batch_index * BATCH_SIZE;
+            let end = std::cmp::min(start + BATCH_SIZE, total_files);
+            let batch = filenames[start..end].to_vec();
+
             println!(
                 "Processing batch {}/{} ({} files)...",
-                batch_num,
+                batch_index + 1,
                 total_batches,
                 batch.len()
             );

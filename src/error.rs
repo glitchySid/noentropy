@@ -62,13 +62,19 @@ impl From<Box<dyn std::error::Error>> for AppError {
 
 impl From<&str> for AppError {
     fn from(err: &str) -> Self {
-        AppError::Unknown(err.to_string())
+        AppError::InvalidInput(err.to_string())
     }
 }
 
 impl From<String> for AppError {
     fn from(err: String) -> Self {
-        AppError::Unknown(err)
+        AppError::InvalidInput(err)
+    }
+}
+
+impl From<std::num::ParseIntError> for AppError {
+    fn from(err: std::num::ParseIntError) -> Self {
+        AppError::InvalidInput(err.to_string())
     }
 }
 

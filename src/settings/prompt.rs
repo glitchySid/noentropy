@@ -3,6 +3,8 @@ use directories::BaseDirs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::error;
+
 const MAX_RETRIES: u32 = 3;
 
 pub struct Prompter;
@@ -35,7 +37,7 @@ impl Prompter {
         matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
     }
 
-    pub fn prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
+    pub fn prompt_api_key() -> error::Result<String> {
         println!();
         println!(
             "Get your API key at: {}",
@@ -68,7 +70,7 @@ impl Prompter {
         Err("Max retries exceeded. Please run again with a valid API key.".into())
     }
 
-    pub fn prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    pub fn prompt_download_folder() -> error::Result<PathBuf> {
         let default_path = Self::get_default_downloads_folder();
         let default_display = &default_path.to_string_lossy();
 

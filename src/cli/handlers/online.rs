@@ -1,5 +1,6 @@
 use crate::cli::Command;
 use crate::cli::errors::handle_gemini_error;
+use crate::error::Result;
 use crate::files::{FileBatch, execute_move, is_text_file, read_file_sample};
 use crate::gemini::GeminiClient;
 use crate::models::OrganizationPlan;
@@ -28,7 +29,7 @@ pub async fn handle_online_organization(
     target_path: &Path,
     cache: &mut Cache,
     undo_log: &mut UndoLog,
-) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
+) -> Result<Option<OrganizationPlan>> {
     let (max_concurrent, dry_run) = match command {
         Command::Organize {
             max_concurrent,

@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::models::organization::OrganizationPlan;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
-    pub fn from_path(file_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_path(file_path: &Path) -> Result<Self> {
         let metadata = fs::metadata(file_path)?;
         let modified = metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs();
 

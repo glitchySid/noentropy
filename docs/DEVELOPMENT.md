@@ -161,22 +161,26 @@ noentropy/
   - Edge case handling
 
 ### tui/
-**Purpose**: Terminal User Interface
+**Purpose**: Terminal User Interface using ratatui framework
 
-- **app.rs**: TUI application state
-  - Manages TUI state machine
-  - Handles file scanning and organization
-  - Tracks progress and statistics
+- **app.rs**: TUI application state and state machine
+  - Manages TUI state transitions (FileList → Fetching → PlanReview → Moving → Done)
+  - Handles file scanning, organization, and progress tracking
+  - Maintains UI state (selected items, tabs, status messages)
+  - Provides state management methods for different phases
 
-- **events.rs**: Event handling
-  - Manages terminal input/output
-  - Handles keyboard events
-  - Coordinates with organization logic
+- **events.rs**: Event handling and keyboard input
+  - Manages terminal input/output using crossterm
+  - Handles keyboard events with context-sensitive actions
+  - Implements the main TUI event loop
+  - Coordinates between UI events and organization logic
+  - Supports tab navigation, file selection, and action triggers
 
-- **ui.rs**: User interface rendering
-  - Implements ratatui widgets
-  - Handles layout and styling
-  - Renders file lists, plans, and progress
+- **ui.rs**: User interface rendering and layout
+  - Implements ratatui widgets and layouts
+  - Handles responsive design for different terminal sizes
+  - Renders file lists, organization plans, and progress indicators
+  - Provides visual feedback for user actions and system status
 
 ### storage/
 **Purpose**: Persistent data layer
@@ -277,6 +281,9 @@ NoEntropy uses these main dependencies (see `Cargo.toml` for full list):
 - **serde_json**: JSON parsing
 - **toml**: TOML configuration parsing
 - **directories**: Cross-platform directory paths
+- **ratatui**: Terminal User Interface framework for TUI mode
+- **crossterm**: Cross-platform terminal handling for TUI
+- **futures**: Async utilities for concurrent operations
 
 ## Development Workflow
 
@@ -374,6 +381,27 @@ git push origin feature/your-feature-name
 3. Add clap attribute for the flag
 4. Update `orchestrator.rs` to use the flag
 
+### Adding a New TUI Feature
+
+1. **State Management**: Update `src/tui/app.rs`
+   - Add new state to `AppState` enum if needed
+   - Update `App` struct with new fields
+   - Add transition methods for new state
+
+2. **Event Handling**: Update `src/tui/events.rs`
+   - Add key binding for new feature
+   - Implement event handler logic
+   - Update state transitions
+
+3. **UI Rendering**: Update `src/tui/ui.rs`
+   - Add new widget or modify existing layout
+   - Implement visual representation
+   - Handle responsive design
+
+4. **Integration**: Update `src/main.rs` or `src/cli/orchestrator.rs`
+   - Connect TUI events to backend logic
+   - Handle data flow between TUI and core functionality
+
 ### Adding a New File Type
 
 1. Edit `src/files/detector.rs`
@@ -418,7 +446,17 @@ RUST_BACKTRACE=full cargo run
 ### Debug Specific Modules
 
 ```bash
+# Debug Gemini API interactions
 RUST_LOG=noentropy::gemini=debug cargo run
+
+# Debug TUI events and state
+RUST_LOG=noentropy::tui=debug cargo run
+
+# Debug file operations
+RUST_LOG=noentropy::files=debug cargo run
+
+# Debug storage (cache/undo)
+RUST_LOG=noentropy::storage=debug cargo run
 ```
 
 ### Print Debugging
@@ -492,6 +530,21 @@ NoEntropy uses GitHub Actions for CI/CD (see `.github/workflows/rust.yml`):
 - Reduces API costs
 - Improves performance for repeated runs
 - Minimizes redundant analysis
+
+### Why TUI with ratatui?
+
+- Interactive user experience without GUI dependencies
+- Cross-platform terminal compatibility
+- Real-time feedback and progress visualization
+- Rich keyboard navigation and state management
+- No external GUI framework dependencies
+
+### Why Dual Interface (TUI + CLI)?
+
+- **TUI**: Interactive exploration and visual feedback
+- **CLI**: Automation, scripting, and integration
+- **Flexibility**: Users can choose their preferred interaction style
+- **Accessibility**: Works in different environments and use cases
 
 ## Future Enhancements
 

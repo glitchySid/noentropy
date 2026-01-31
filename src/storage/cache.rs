@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::models::{CacheEntry, FileMetadata, OrganizationPlan};
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
@@ -30,7 +31,7 @@ impl Cache {
         }
     }
 
-    pub fn load_or_create(cache_path: &Path) -> Self {
+    pub fn load_or_create(cache_path: &Path, silent: bool) -> Self {
         if !cache_path.exists() {
             return Self::new();
         }
@@ -38,22 +39,28 @@ impl Cache {
         match fs::read_to_string(cache_path) {
             Ok(content) => match serde_json::from_str::<Cache>(&content) {
                 Ok(cache) => {
-                    println!("Loaded cache with {} entries", cache.entries.len());
+                    if !silent {
+                        println!("Loaded cache with {} entries", cache.entries.len());
+                    }
                     cache
                 }
                 Err(_) => {
-                    println!("Cache corrupted, creating new cache");
+                    if !silent {
+                        println!("Cache corrupted, creating new cache");
+                    }
                     Self::new()
                 }
             },
             Err(_) => {
-                println!("Failed to read cache, creating new cache");
+                if !silent {
+                    println!("Failed to read cache, creating new cache");
+                }
                 Self::new()
             }
         }
     }
 
-    pub fn save(&self, cache_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(&self, cache_path: &Path) -> Result<()> {
         if let Some(parent) = cache_path.parent() {
             fs::create_dir_all(parent)?;
         }

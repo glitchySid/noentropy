@@ -30,11 +30,18 @@ When you run `noentropy` without a subcommand, it launches an interactive TUI:
 ```
 
 **TUI Workflow:**
-1. **File Browser**: Browse files with keyboard navigation
-2. **Organization**: Press `o` to generate AI categorization
+1. **File Browser**: Browse files with keyboard navigation in Files tab
+2. **Organization**: Press `o` to generate AI categorization (or `t` to toggle offline mode first)
 3. **Plan Review**: Review proposed organization in Plan tab
 4. **Confirmation**: Press `c` to confirm and execute
 5. **Progress**: Monitor real-time progress in Progress tab
+6. **Completion**: Press `r` to restart or `q` to quit when done
+
+**TUI Features:**
+- **Tab Navigation**: Switch between Files, Plan, and Progress tabs using `Tab`/`Shift+Tab`
+- **Live Mode Toggle**: Press `t` to toggle between online (AI) and offline (extension-based) modes
+- **Status Display**: Shows current mode, file count, and organization status
+- **Interactive Controls**: Context-sensitive key bindings based on current tab and state
 
 ### CLI Mode
 
@@ -345,28 +352,79 @@ NoEntropy uses carefully crafted prompts to get accurate categorization:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     NoEntropy CLI                       │
-│                   (Orchestrator)                        │
-└────────────┬──────────────────────────────┬─────────────┘
-             │                              │
-    ┌────────▼─────────┐           ┌───────▼────────┐
-    │  File Scanner    │           │  Config Manager │
-    │  & Detector      │           │                 │
-    └────────┬─────────┘           └────────────────┘
-             │
-    ┌────────▼──────────────────────────────────────┐
-    │           Gemini AI Client                    │
-    │  (with retry logic & concurrent processing)   │
-    └────────┬──────────────────────────────────────┘
-             │
-    ┌────────▼─────────┐           ┌────────────────┐
-    │  Cache System    │           │   Undo Log     │
-    └──────────────────┘           └────────────────┘
-             │
-    ┌────────▼─────────┐
-    │   File Mover     │
-    └──────────────────┘
+│                     NoEntropy                           │
+│                  (Main Entry Point)                     │
+└────────────┬──────────────────────┬────────────────────┘
+             │                      │
+    ┌────────▼─────────┐   ┌────────▼────────┐
+    │   TUI Mode       │   │   CLI Mode       │
+    │ (Interactive)    │   │ (Commands)       │
+    └────────┬─────────┘   └────────┬────────┘
+             │                      │
+             └──────────┬───────────┘
+                        │
+    ┌───────────────────▼───────────────────┐
+    │           Shared Components            │
+    │                                      │
+    │  ┌─────────────────┐  ┌─────────────▼──────┐
+    │  │  File Scanner   │  │   Orchestrator     │
+    │  │  & Detector     │  │                    │
+    │  └────────┬────────┘  └────────────────────┘
+    │           │                                 │
+    │  ┌────────▼──────────────────────────────┐ │
+    │  │           Gemini AI Client            │ │
+    │  │  (with retry logic & concurrent)     │ │
+    │  └────────┬──────────────────────────────┘ │
+    │           │                                 │
+    │  ┌────────▼─────────┐  ┌──────────────────┐ │
+    │  │  Cache System    │  │   Undo Log       │ │
+    │  └──────────────────┘  └──────────────────┘ │
+    │           │                                 │
+    │  ┌────────▼─────────┐                         │
+    │  │   File Mover    │                         │
+    │  └──────────────────┘                         │
+    └────────────────────────────────────────────────┘
 ```
+
+## TUI Architecture
+
+The TUI is built using the `ratatui` framework and follows a modular architecture:
+
+```
+TUI Module Structure:
+├── app.rs          # Application state management
+├── events.rs       # Event handling and keyboard input
+├── ui.rs           # UI rendering and layout
+└── mod.rs          # Module exports
+
+State Management:
+├── App State       # Overall application state
+├── Tab State       # Current active tab (Files/Plan/Progress)
+├── File List       # Scanned files and selection
+├── Organization Plan # Generated categorization plan
+└── Progress        # Real-time operation progress
+```
+
+**Key TUI Components:**
+
+1. **App State Machine**: Manages transitions between different states
+   - `FileList`: Initial file browsing
+   - `Fetching`: Getting AI categorization
+   - `PlanReview`: Reviewing organization plan
+   - `Moving`: Executing file moves
+   - `Done`: Completion state
+   - `Error`: Error handling
+
+2. **Event Loop**: Handles keyboard input and terminal events
+   - Navigation keys (j/k, ↑/↓, Tab)
+   - Action keys (o, c, r, q, t)
+   - Terminal resize handling
+
+3. **UI Rendering**: Draws the interface using ratatui widgets
+   - File list with details
+   - Plan review table
+   - Progress bar and statistics
+   - Status messages and mode indicators
 
 ## Next Steps
 

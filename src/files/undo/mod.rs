@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::storage::UndoLog;
 use colored::*;
 use std::path::Path;
@@ -17,7 +18,7 @@ pub fn undo_moves(
     base_path: &Path,
     undo_log: &mut UndoLog,
     dry_run: bool,
-) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
+) -> Result<(usize, usize, usize)> {
     let confirmation = StdinConfirmation;
     match execution::undo_with_strategy(base_path, undo_log, &confirmation, dry_run) {
         Ok(summary) => {
@@ -45,7 +46,7 @@ pub fn undo_moves_auto(
     base_path: &Path,
     undo_log: &mut UndoLog,
     dry_run: bool,
-) -> Result<UndoSummary, UndoError> {
+) -> std::result::Result<UndoSummary, UndoError> {
     let confirmation = AutoConfirm;
     execution::undo_with_strategy(base_path, undo_log, &confirmation, dry_run)
 }

@@ -38,10 +38,10 @@ pub async fn handle_online_organization(
         } => (*max_concurrent, *dry_run),
         _ => unreachable!(),
     };
-    
+
     let (skip_flag, no_skip_flag) = get_deep_inspect_flags(command);
     let should_deep_inspect = config.should_deep_inspect(skip_flag, no_skip_flag);
-    
+
     let paths = batch.paths.clone();
 
     let client = GeminiClient::new(&config.api_key, &config.categories);
@@ -81,7 +81,10 @@ async fn perform_deep_inspection(
     client: &GeminiClient,
     max_concurrent: usize,
 ) {
-    println!("{}", "Gemini Plan received! Performing deep inspection...".green());
+    println!(
+        "{}",
+        "Gemini Plan received! Performing deep inspection...".green()
+    );
 
     let client_arc = Arc::new(client.clone());
     let semaphore = Arc::new(tokio::sync::Semaphore::new(max_concurrent));

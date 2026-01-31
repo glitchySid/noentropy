@@ -207,42 +207,44 @@ async fn fetch_organization_plan(
         .organize_files_in_batches(batch.filenames.clone(), Some(cache), Some(&app.target_path))
         .await?;
 
-    // Deep inspection for text files
-    let client_arc = Arc::new(client);
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(5));
+    // Deep inspection only if enabled in config (default: disabled)
+    if config.deep_inspect {
+        let client_arc = Arc::new(client);
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(5));
 
-    let tasks: Vec<_> = plan
-        .files
-        .iter_mut()
-        .zip(batch.paths.iter())
-        .map(|(file_category, path)| {
-            let client = Arc::clone(&client_arc);
-            let filename = file_category.filename.clone();
-            let category = file_category.category.clone();
-            let path = path.clone();
-            let semaphore = Arc::clone(&semaphore);
+        let tasks: Vec<_> = plan
+            .files
+            .iter_mut()
+            .zip(batch.paths.iter())
+            .map(|(file_category, path)| {
+                let client = Arc::clone(&client_arc);
+                let filename = file_category.filename.clone();
+                let category = file_category.category.clone();
+                let path = path.clone();
+                let semaphore = Arc::clone(&semaphore);
 
-            async move {
-                if is_text_file(&path) {
-                    let _permit = semaphore.acquire().await.unwrap();
-                    if let Some(content) = read_file_sample(&path, 5000) {
-                        client
-                            .get_ai_sub_category(&filename, &category, &content)
-                            .await
+                async move {
+                    if is_text_file(&path) {
+                        let _permit = semaphore.acquire().await.unwrap();
+                        if let Some(content) = read_file_sample(&path, 5000) {
+                            client
+                                .get_ai_sub_category(&filename, &category, &content)
+                                .await
+                        } else {
+                            String::new()
+                        }
                     } else {
                         String::new()
                     }
-                } else {
-                    String::new()
                 }
-            }
-        })
-        .collect();
+            })
+            .collect();
 
-    let sub_categories: Vec<String> = join_all(tasks).await;
+        let sub_categories: Vec<String> = join_all(tasks).await;
 
-    for (file_category, sub_category) in plan.files.iter_mut().zip(sub_categories) {
-        file_category.sub_category = sub_category;
+        for (file_category, sub_category) in plan.files.iter_mut().zip(sub_categories) {
+            file_category.sub_category = sub_category;
+        }
     }
 
     Ok(plan)

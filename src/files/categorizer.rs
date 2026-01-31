@@ -1,115 +1,96 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::LazyLock;
+use string_interner::{DefaultSymbol, StringInterner};
+
+type Sym = DefaultSymbol;
 
 use crate::models::{FileCategory, OrganizationPlan};
 
-static EXTENSION_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
-    HashMap::from([
-        // Images
-        ("jpg", "Images"),
-        ("jpeg", "Images"),
-        ("png", "Images"),
-        ("gif", "Images"),
-        ("bmp", "Images"),
-        ("svg", "Images"),
-        ("webp", "Images"),
-        ("ico", "Images"),
-        ("tiff", "Images"),
-        ("tif", "Images"),
-        ("raw", "Images"),
-        ("heic", "Images"),
-        ("heif", "Images"),
-        // Documents
-        ("pdf", "Documents"),
-        ("doc", "Documents"),
-        ("docx", "Documents"),
-        ("txt", "Documents"),
-        ("rtf", "Documents"),
-        ("odt", "Documents"),
-        ("xls", "Documents"),
-        ("xlsx", "Documents"),
-        ("ppt", "Documents"),
-        ("pptx", "Documents"),
-        ("csv", "Documents"),
-        ("md", "Documents"),
-        ("epub", "Documents"),
-        // Installers
-        ("exe", "Installers"),
-        ("msi", "Installers"),
-        ("dmg", "Installers"),
-        ("deb", "Installers"),
-        ("rpm", "Installers"),
-        ("app", "Installers"),
-        ("appimage", "Installers"),
-        ("pkg", "Installers"),
-        ("snap", "Installers"),
-        // Music
-        ("mp3", "Music"),
-        ("wav", "Music"),
-        ("flac", "Music"),
-        ("aac", "Music"),
-        ("ogg", "Music"),
-        ("wma", "Music"),
-        ("m4a", "Music"),
-        ("opus", "Music"),
-        ("aiff", "Music"),
-        // Video
-        ("mp4", "Video"),
-        ("mkv", "Video"),
-        ("avi", "Video"),
-        ("mov", "Video"),
-        ("wmv", "Video"),
-        ("flv", "Video"),
-        ("webm", "Video"),
-        ("m4v", "Video"),
-        ("mpeg", "Video"),
-        ("mpg", "Video"),
-        // Archives
-        ("zip", "Archives"),
-        ("tar", "Archives"),
-        ("gz", "Archives"),
-        ("rar", "Archives"),
-        ("7z", "Archives"),
-        ("bz2", "Archives"),
-        ("xz", "Archives"),
-        ("tgz", "Archives"),
-        ("zst", "Archives"),
-        // Code
-        ("rs", "Code"),
-        ("py", "Code"),
-        ("js", "Code"),
-        ("ts", "Code"),
-        ("java", "Code"),
-        ("c", "Code"),
-        ("cpp", "Code"),
-        ("h", "Code"),
-        ("hpp", "Code"),
-        ("go", "Code"),
-        ("rb", "Code"),
-        ("php", "Code"),
-        ("html", "Code"),
-        ("css", "Code"),
-        ("json", "Code"),
-        ("yaml", "Code"),
-        ("yml", "Code"),
-        ("toml", "Code"),
-        ("xml", "Code"),
-        ("sh", "Code"),
-        ("bash", "Code"),
-        ("sql", "Code"),
-    ])
-});
+const IMAGE_EXTENSIONS: &[&str] = &[
+    "jpg", "jpeg", "png", "gif", "bmp", "svg", "webp", "ico", "tiff", "tif", "raw", "heic", "heif",
+];
+const DOCUMENT_EXTENSIONS: &[&str] = &[
+    "pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "ppt", "pptx", "csv", "md", "epub",
+];
+const INSTALLER_EXTENSIONS: &[&str] = &[
+    "exe", "msi", "dmg", "deb", "rpm", "app", "appimage", "pkg", "snap",
+];
+const MUSIC_EXTENSIONS: &[&str] = &[
+    "mp3", "wav", "flac", "aac", "ogg", "wma", "m4a", "opus", "aiff",
+];
+const VIDEO_EXTENSIONS: &[&str] = &[
+    "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "mpeg", "mpg",
+];
+const ARCHIVE_EXTENSIONS: &[&str] = &["zip", "tar", "gz", "rar", "7z", "bz2", "xz", "tgz", "zst"];
+const CODE_EXTENSIONS: &[&str] = &[
+    "rs", "py", "js", "ts", "java", "c", "cpp", "h", "hpp", "go", "rb", "php", "html", "css",
+    "json", "yaml", "yml", "toml", "xml", "sh", "bash", "sql",
+];
+
+fn build_extension_map() -> (HashMap<&'static str, Sym>, StringInterner) {
+    let mut map = HashMap::new();
+    let mut interner = StringInterner::new();
+
+    let images_sym = interner.get_or_intern("Images");
+    let documents_sym = interner.get_or_intern("Documents");
+    let installers_sym = interner.get_or_intern("Installers");
+    let music_sym = interner.get_or_intern("Music");
+    let video_sym = interner.get_or_intern("Video");
+    let archives_sym = interner.get_or_intern("Archives");
+    let code_sym = interner.get_or_intern("Code");
+
+    for &ext in IMAGE_EXTENSIONS {
+        map.insert(ext, images_sym);
+    }
+    for &ext in DOCUMENT_EXTENSIONS {
+        map.insert(ext, documents_sym);
+    }
+    for &ext in INSTALLER_EXTENSIONS {
+        map.insert(ext, installers_sym);
+    }
+    for &ext in MUSIC_EXTENSIONS {
+        map.insert(ext, music_sym);
+    }
+    for &ext in VIDEO_EXTENSIONS {
+        map.insert(ext, video_sym);
+    }
+    for &ext in ARCHIVE_EXTENSIONS {
+        map.insert(ext, archives_sym);
+    }
+    for &ext in CODE_EXTENSIONS {
+        map.insert(ext, code_sym);
+    }
+
+    (map, interner)
+}
+
+static EXTENSION_MAP: LazyLock<(HashMap<&'static str, Sym>, StringInterner)> =
+    LazyLock::new(build_extension_map);
 
 /// Categorizes a file by its extension.
 /// Returns `Some(category)` if the extension is known, `None` otherwise.
-pub fn categorize_by_extension(filename: &str) -> Option<&'static str> {
-    Path::new(filename)
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.to_lowercase())
-        .as_deref()
-        .and_then(|ext| EXTENSION_MAP.get(ext).copied())
+pub fn categorize_by_extension(filename: &str) -> Option<String> {
+    // Early return for empty or invalid filenames
+    if filename.is_empty() {
+        return None;
+    }
+
+    // Use a more efficient path to get extension
+    let path = Path::new(filename);
+    let ext = path.extension()?.to_str()?;
+
+    // Avoid allocation by checking if lowercase is needed
+    let ext_lower = if ext.chars().any(|c| c.is_uppercase()) {
+        ext.to_lowercase()
+    } else {
+        ext.to_string()
+    };
+
+    EXTENSION_MAP
+        .0
+        .get(ext_lower.as_str())
+        .map(|&sym| EXTENSION_MAP.1.resolve(sym).unwrap().to_string())
 }
 
 /// Result of offline categorization
@@ -129,7 +110,7 @@ pub fn categorize_files_offline(filenames: Vec<String>) -> OfflineCategorization
             Some(category) => {
                 files.push(FileCategory {
                     filename,
-                    category: category.to_string(),
+                    category,
                     sub_category: String::new(),
                 });
             }

@@ -113,8 +113,8 @@ pub async fn handle_organization(args: Args, config: Config) -> Result<()> {
         .await?
     };
 
-    if plan.is_none()
-        && let Err(e) = cache.save(&cache_path)
+    if let Err(e) = cache.save(&cache_path)
+        && plan.is_none()
     {
         eprintln!("Warning: Failed to save cache: {}", e);
     }

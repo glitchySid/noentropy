@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::models::{CacheEntry, FileMetadata, OrganizationPlan};
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
@@ -59,7 +60,7 @@ impl Cache {
         }
     }
 
-    pub fn save(&self, cache_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(&self, cache_path: &Path) -> Result<()> {
         if let Some(parent) = cache_path.parent() {
             fs::create_dir_all(parent)?;
         }

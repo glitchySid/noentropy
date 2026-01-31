@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::models::{FileMoveRecord, MoveStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -61,7 +62,7 @@ impl UndoLog {
         }
     }
 
-    pub fn save(&self, undo_log_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(&self, undo_log_path: &Path) -> Result<()> {
         if let Some(parent) = undo_log_path.parent() {
             fs::create_dir_all(parent)?;
         }

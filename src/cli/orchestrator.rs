@@ -2,13 +2,14 @@ use crate::cli::Args;
 use crate::cli::Command;
 use crate::cli::handlers::{handle_offline_organization, handle_online_organization};
 use crate::cli::path_utils::validate_and_normalize_path;
+use crate::error::Result;
 use crate::files::FileBatch;
 use crate::gemini::GeminiClient;
 use crate::settings::{Config, Prompter};
 use crate::storage::{Cache, UndoLog};
 use colored::*;
 
-fn initialize_cache() -> Result<(Cache, std::path::PathBuf), Box<dyn std::error::Error>> {
+fn initialize_cache() -> Result<(Cache, std::path::PathBuf)> {
     const CACHE_RETENTION_SECONDS: u64 = 7 * 24 * 60 * 60;
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
@@ -17,7 +18,7 @@ fn initialize_cache() -> Result<(Cache, std::path::PathBuf), Box<dyn std::error:
     Ok((cache, cache_path))
 }
 
-fn initialize_undo_log() -> Result<(UndoLog, std::path::PathBuf), Box<dyn std::error::Error>> {
+fn initialize_undo_log() -> Result<(UndoLog, std::path::PathBuf)> {
     const UNDO_LOG_RETENTION_SECONDS: u64 = 30 * 24 * 60 * 60;
     let undo_log_path = Config::get_undo_log_path()?;
     let mut undo_log = UndoLog::load_or_create(&undo_log_path, false);
@@ -72,10 +73,7 @@ async fn determine_offline_mode(args: &Args, config: &Config) -> Option<bool> {
     }
 }
 
-pub async fn handle_organization(
-    args: Args,
-    config: Config,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn handle_organization(args: Args, config: Config) -> Result<()> {
     let (mut cache, cache_path) = initialize_cache()?;
     let (mut undo_log, undo_log_path) = initialize_undo_log()?;
 

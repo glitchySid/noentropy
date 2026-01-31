@@ -1,12 +1,13 @@
 use clap::Parser;
 use noentropy::cli::{Args, Command, handle_organization, handle_undo};
+use noentropy::error::Result;
 use noentropy::files::duplicate::execute_delete;
 use noentropy::settings::config::change_and_prompt_api_key;
 use noentropy::settings::{get_or_prompt_config, get_or_prompt_download_folder};
 use noentropy::tui::run_app;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let args = Args::parse();
 
     match &args.command {

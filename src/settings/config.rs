@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+use crate::error::Result;
+
 use super::prompt::Prompter;
 
 pub fn default_categories() -> Vec<String> {
@@ -27,7 +29,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load() -> Result<Self> {
         let config_path = Self::get_config_path()?;
 
         if !config_path.exists() {
@@ -44,7 +46,7 @@ impl Config {
         Ok(config)
     }
 
-    pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(&self) -> Result<()> {
         let config_path = Self::get_config_path()?;
 
         let toml_string = toml::to_string_pretty(self)?;
@@ -60,21 +62,21 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
+    pub fn get_api_key() -> Result<String> {
         match Self::load() {
             Ok(config) => Ok(config.api_key),
             Err(_) => Err("API key not configured".into()),
         }
     }
 
-    pub fn get_download_folder() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    pub fn get_download_folder() -> Result<PathBuf> {
         match Self::load() {
             Ok(config) => Ok(config.download_folder),
             Err(_) => Err("Download folder not configured".into()),
         }
     }
 
-    fn get_config_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    fn get_config_dir() -> Result<PathBuf> {
         match directories::ProjectDirs::from("dev", "noentropy", "NoEntropy") {
             Some(proj_dirs) => {
                 let config_dir = proj_dirs.config_dir().to_path_buf();
@@ -85,23 +87,23 @@ impl Config {
         }
     }
 
-    fn get_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    fn get_config_path() -> Result<PathBuf> {
         Ok(Self::get_config_dir()?.join("config.toml"))
     }
 
-    pub fn get_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    pub fn get_data_dir() -> Result<PathBuf> {
         let config_dir = Self::get_config_dir()?;
         let data_dir = config_dir.join("data");
         fs::create_dir_all(&data_dir)?;
         Ok(data_dir)
     }
 
-    pub fn get_undo_log_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    pub fn get_undo_log_path() -> Result<PathBuf> {
         Ok(Self::get_data_dir()?.join("undo_log.json"))
     }
 }
 
-pub fn get_or_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_or_prompt_api_key() -> Result<String> {
     if let Ok(config) = Config::load()
         && !config.api_key.is_empty()
     {
@@ -122,7 +124,7 @@ pub fn get_or_prompt_api_key() -> Result<String, Box<dyn std::error::Error>> {
     Ok(api_key)
 }
 
-pub fn change_and_prompt_api_key() -> Result<(), Box<dyn std::error::Error>> {
+pub fn change_and_prompt_api_key() -> Result<()> {
     println!();
     println!("{}", "🔑 NoEntropy Configuration".bold().cyan());
     println!("{}", "─────────────────────────────".cyan());
@@ -137,7 +139,7 @@ pub fn change_and_prompt_api_key() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn get_or_prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub fn get_or_prompt_download_folder() -> Result<PathBuf> {
     if let Ok(config) = Config::load()
         && !config.download_folder.as_os_str().is_empty()
         && config.download_folder.exists()
@@ -158,7 +160,7 @@ pub fn get_or_prompt_download_folder() -> Result<PathBuf, Box<dyn std::error::Er
     Ok(folder_path)
 }
 
-pub fn get_or_prompt_config() -> Result<Config, Box<dyn std::error::Error>> {
+pub fn get_or_prompt_config() -> Result<Config> {
     let mut config = Config::load().unwrap_or_default();
     let mut needs_save = false;
 

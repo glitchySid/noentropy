@@ -278,7 +278,7 @@ fn test_cache_save_and_load() {
     }
 
     // Load the cache
-    let loaded_cache = Cache::load_or_create(&cache_path);
+    let loaded_cache = Cache::load_or_create(&cache_path, false);
 
     // Should have the entry
     let result = loaded_cache.check_cache(&vec!["test.txt".to_string()], Path::new("/tmp"));
@@ -294,7 +294,7 @@ fn test_cache_load_corrupted_file() {
     fs::write(&cache_path, "not valid json {").unwrap();
 
     // Should create new cache instead of panicking
-    let cache = Cache::load_or_create(&cache_path);
+    let cache = Cache::load_or_create(&cache_path, false);
     assert!(cache.is_empty());
 }
 
@@ -304,7 +304,7 @@ fn test_cache_load_nonexistent_file() {
     let cache_path = temp_dir.path().join("nonexistent.json");
 
     // Should create new cache
-    let cache = Cache::load_or_create(&cache_path);
+    let cache = Cache::load_or_create(&cache_path, false);
     assert!(cache.is_empty());
 }
 

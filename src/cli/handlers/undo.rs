@@ -1,14 +1,12 @@
 use crate::cli::Command;
 use crate::cli::path_utils::validate_and_normalize_path;
+use crate::error::Result;
 use crate::settings::Config;
 use crate::storage::UndoLog;
 use colored::*;
 use std::path::PathBuf;
 
-pub async fn handle_undo(
-    command: &Command,
-    download_path: PathBuf,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn handle_undo(command: &Command, download_path: PathBuf) -> Result<()> {
     let undo_log_path = Config::get_undo_log_path()?;
 
     if !undo_log_path.exists() {

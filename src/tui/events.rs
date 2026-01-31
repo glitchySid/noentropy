@@ -1,4 +1,5 @@
 use crate::cli::path_utils::validate_and_normalize_path;
+use crate::error::Result;
 use crate::files::{execute_move_silent, is_text_file, read_file_sample};
 use crate::gemini::GeminiClient;
 use crate::models::OrganizationPlan;
@@ -27,7 +28,7 @@ pub async fn run_app(
     recursive: bool,
     dry_run: bool,
     offline: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     // Validate and normalize the target path
     let target_path = match target_path {
         Some(p) => validate_and_normalize_path(&p).await?,
@@ -92,7 +93,7 @@ async fn run_event_loop(
     config: &Config,
     cache: &mut Cache,
     undo_log: &mut UndoLog,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     loop {
         terminal.draw(|frame| draw(frame, app))?;
 
@@ -185,7 +186,7 @@ async fn fetch_organization_plan(
     app: &App,
     config: &Config,
     cache: &mut Cache,
-) -> Result<OrganizationPlan, Box<dyn std::error::Error>> {
+) -> Result<OrganizationPlan> {
     let batch = app.batch.as_ref().ok_or("No files to organize")?;
 
     if app.offline {

@@ -1,3 +1,4 @@
+use crate::error::Result;
 use crate::files::{FileBatch, categorize_files_offline, execute_move};
 use crate::models::OrganizationPlan;
 use crate::storage::UndoLog;
@@ -10,7 +11,7 @@ pub fn handle_offline_organization(
     target_path: &Path,
     dry_run: bool,
     undo_log: &mut UndoLog,
-) -> Result<Option<OrganizationPlan>, Box<dyn std::error::Error>> {
+) -> Result<Option<OrganizationPlan>> {
     println!("{}", "Categorizing files by extension...".cyan());
 
     let result = categorize_files_offline(batch.filenames);

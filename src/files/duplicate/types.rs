@@ -75,3 +75,9 @@ impl From<Box<dyn std::error::Error>> for DuplicateError {
         DuplicateError::InputReadFailed(err.to_string())
     }
 }
+
+impl From<crate::error::AppError> for DuplicateError {
+    fn from(err: crate::error::AppError) -> Self {
+        DuplicateError::InputReadFailed(err.to_string())
+    }
+}

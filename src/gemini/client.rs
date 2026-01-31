@@ -13,6 +13,7 @@ const DEFAULT_TIMEOUT_SECS: u64 = 120;
 const MAX_RETRIES: u32 = 3;
 const BATCH_SIZE: usize = 50;
 
+#[derive(Clone)]
 pub struct GeminiClient {
     api_key: String,
     client: Client,

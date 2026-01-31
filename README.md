@@ -24,7 +24,6 @@ NoEntropy is a smart command-line tool that organizes your cluttered Downloads f
 - **🖥️ Interactive TUI** - Visual file browser with real-time categorization preview
 - **🎮 Keyboard Navigation** - Intuitive keyboard controls for efficient workflow
 - **📊 Progress Tracking** - Real-time statistics and progress visualization
-- **🖥️ Interactive TUI** - Visual file browser with real-time categorization preview
 
 ## Quick Start
 
@@ -88,7 +87,7 @@ On first run, NoEntropy will guide you through an interactive setup to configure
 ### Basic Usage
 
 ```bash
-# Launch interactive TUI (default)
+# Launch interactive TUI (default mode)
 ./noentropy
 
 # Organize your downloads folder (CLI mode)
@@ -114,7 +113,6 @@ On first run, NoEntropy will guide you through an interactive setup to configure
 
 # Use TUI with recursive mode
 ./noentropy --recursive
-```
 
 # Undo the last organization
 ./noentropy undo
@@ -189,12 +187,26 @@ Done!
 
 ## Commands
 
-NoEntropy uses a command-based interface with both CLI and TUI modes:
+NoEntropy offers two interface modes:
+
+### TUI Mode (Default)
+Running `noentropy` without a subcommand launches the interactive Terminal User Interface:
+
+```bash
+# Launch TUI
+./noentropy
+
+# TUI with options
+./noentropy --dry-run --offline --recursive
+./noentropy /path/to/folder
+```
+
+### CLI Mode (Commands)
+Use subcommands for traditional command-line interface:
 
 | Command | Description |
 |---------|-------------|
-| `noentropy` | Launch interactive TUI (default) |
-| `noentropy organize` | Organize files using AI categorization (CLI mode) |
+| `noentropy organize` | Organize files using AI categorization |
 | `noentropy undo` | Undo the last file organization |
 | `noentropy key` | Change the Gemini API key |
 | `noentropy duplicates` | Detect and delete duplicate files |
@@ -205,19 +217,19 @@ Running `noentropy` without a subcommand launches the interactive TUI:
 
 ```bash
 # Launch TUI
-oentropy
+./noentropy
 
 # TUI with dry-run mode (preview only)
-oentropy --dry-run
+./noentropy --dry-run
 
 # TUI for specific folder
-oentropy /path/to/folder
+./noentropy /path/to/folder
 
 # TUI with offline mode
-oentropy --offline
+./noentropy --offline
 
 # TUI with recursive mode
-oentropy --recursive
+./noentropy --recursive
 ```
 
 **TUI Features:**
@@ -384,19 +396,27 @@ All file moves are tracked for 30 days with full conflict detection and safety f
 
 ## Command-Line Reference
 
+### Global Usage
+
 ```
-Usage: noentropy <COMMAND>
+Usage: noentropy [OPTIONS] [PATH] [COMMAND]
+
+Arguments:
+  [PATH]  Path to organize (defaults to configured download folder)
+
+Options:
+  -d, --dry-run    Preview changes without moving files
+  -r, --recursive  Recursively search files in subdirectory
+  -o, --offline    Use offline mode (extension-based categorization)
+  -h, --help       Print help
+  -V, --version    Print version
 
 Commands:
-  organize    Organize downloads using AI categorization
+  organize    Organize downloads using AI categorization (CLI mode)
   undo        Undo the last file organization
   key         Change the API key
   duplicates  Detect and delete duplicate files
   help        Print this message or the help of the given subcommand(s)
-
-Options:
-  -h, --help     Print help
-  -V, --version  Print version
 ```
 
 ### Organize Command Options
@@ -460,27 +480,44 @@ noentropy/
 
 See the [Development Guide](docs/DEVELOPMENT.md) for detailed architecture information.
 
-## Command-Line Reference
+### Organize Command Options
 
 ```
-Usage: noentropy [OPTIONS] [PATH] [COMMAND]
-
-Commands:
-  organize    Organize downloads using AI categorization (CLI mode)
-  undo        Undo the last file organization
-  key         Change the API key
-  duplicates  Detect and delete duplicate files
-  help        Print this message or the help of the given subcommand(s)
+Usage: noentropy organize [OPTIONS] [PATH]
 
 Arguments:
   [PATH]  Path to organize (defaults to configured download folder)
 
 Options:
+  -d, --dry-run          Preview changes without moving files
+  -m, --max-concurrent <MAX_CONCURRENT>
+                          Maximum concurrent API requests (default: 5)
+  -o, --offline          Use offline mode (extension-based categorization)
+  -r, --recursive        Recursively search files in subdirectories
+  -h, --help             Print help
+```
+
+### Undo Command Options
+
+```
+Usage: noentropy undo [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]  Path to undo (defaults to configured download folder)
+
+Options:
   -d, --dry-run    Preview changes without moving files
-  -r, --recursive  Recursively search files in subdirectory
-  -o, --offline    Use offline mode (extension-based categorization)
   -h, --help       Print help
-  -V, --version    Print version
+```
+
+### Duplicates Command Options
+
+```
+Usage: noentropy duplicates [OPTIONS]
+
+Options:
+  -r, --recursive    Recursively search files in subdirectory
+  -h, --help         Print help
 ```
 
 ### Organize Command Options

@@ -9,6 +9,7 @@ fn test_config_serialization() {
         api_key: "test_key_12345".to_string(),
         download_folder: PathBuf::from("/test/path"),
         categories: default_categories(),
+        deep_inspect: false,
     };
 
     let toml_str = toml::to_string_pretty(&config).unwrap();
@@ -87,6 +88,7 @@ fn test_config_empty_api_key_error() {
         api_key: String::new(),
         download_folder: PathBuf::from("/test/path"),
         categories: default_categories(),
+        deep_inspect: false,
     };
 
     assert!(config.api_key.is_empty());

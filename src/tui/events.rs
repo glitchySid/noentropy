@@ -1,4 +1,5 @@
 use crate::cli::path_utils::validate_and_normalize_path;
+use crate::error::Result;
 use crate::files::{execute_move_silent, is_text_file, read_file_sample};
 use crate::gemini::GeminiClient;
 use crate::models::OrganizationPlan;
@@ -27,7 +28,7 @@ pub async fn run_app(
     recursive: bool,
     dry_run: bool,
     offline: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     // Validate and normalize the target path
     let target_path = match target_path {
         Some(p) => validate_and_normalize_path(&p).await?,
@@ -56,11 +57,11 @@ pub async fn run_app(
     // Initialize cache and undo log
     let data_dir = Config::get_data_dir()?;
     let cache_path = data_dir.join(".noentropy_cache.json");
-    let mut cache = Cache::load_or_create(&cache_path);
+    let mut cache = Cache::load_or_create(&cache_path, true);
     cache.cleanup_old_entries(CACHE_RETENTION_SECONDS);
 
     let undo_log_path = Config::get_undo_log_path()?;
-    let mut undo_log = UndoLog::load_or_create(&undo_log_path);
+    let mut undo_log = UndoLog::load_or_create(&undo_log_path, true);
     undo_log.cleanup_old_entries(UNDO_LOG_RETENTION_SECONDS);
 
     // Main event loop
@@ -92,7 +93,7 @@ async fn run_event_loop(
     config: &Config,
     cache: &mut Cache,
     undo_log: &mut UndoLog,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     loop {
         terminal.draw(|frame| draw(frame, app))?;
 
@@ -163,6 +164,12 @@ async fn run_event_loop(
                         app.scan_files();
                     }
                 }
+                KeyCode::Char('t') => {
+                    // Toggle offline mode
+                    app.offline = !app.offline;
+                    let mode_text = if app.offline { "ON" } else { "OFF" };
+                    app.status_message = format!("Offline mode: {}", mode_text);
+                }
                 _ => {}
             }
         }
@@ -179,7 +186,7 @@ async fn fetch_organization_plan(
     app: &App,
     config: &Config,
     cache: &mut Cache,
-) -> Result<OrganizationPlan, Box<dyn std::error::Error>> {
+) -> Result<OrganizationPlan> {
     let batch = app.batch.as_ref().ok_or("No files to organize")?;
 
     if app.offline {

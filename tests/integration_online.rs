@@ -169,7 +169,7 @@ fn test_cache_persistence() {
     }
 
     // Load cache - just verify it loads without error
-    let _loaded_cache = Cache::load_or_create(&cache_path);
+    let _loaded_cache = Cache::load_or_create(&cache_path, false);
 }
 
 // ============================================================================
@@ -262,7 +262,7 @@ fn test_undo_log_persistence() {
     }
 
     // Load and verify
-    let loaded_log = UndoLog::load_or_create(&log_path);
+    let loaded_log = UndoLog::load_or_create(&log_path, false);
     assert_eq!(loaded_log.get_completed_count(), 1);
 }
 

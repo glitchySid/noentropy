@@ -22,6 +22,14 @@ pub struct Args {
     /// Use offline mode (extension-based categorization)
     #[arg(long, short = 'o', global = true)]
     pub offline: bool,
+
+    /// Skip AI deep inspection for sub-categorization (faster)
+    #[arg(long, global = true)]
+    pub skip_deep_inspect: bool,
+
+    /// Enable AI deep inspection for sub-categorization (slower but more accurate)
+    #[arg(long, global = true)]
+    pub no_skip_deep_inspect: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -39,6 +47,10 @@ pub enum Command {
         recursive: bool,
         #[arg(help = "Path to organize (defaults to configured download folder)")]
         path: Option<PathBuf>,
+        #[arg(long, help = "Skip AI deep inspection (faster)")]
+        skip_deep_inspect: bool,
+        #[arg(long, help = "Enable AI deep inspection (slower but accurate)")]
+        no_skip_deep_inspect: bool,
     },
     /// Undo the last file organization
     Undo {

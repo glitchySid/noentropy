@@ -12,3 +12,10 @@ download_folder = "/path/to/your/downloads"
 # If not specified, uses default categories: Images, Documents, Installers, Music, Archives, Code, Misc
 # Uncomment and customize the list below to use your own categories:
 # categories = ["Work", "Personal", "School", "Projects", "Bills", "Media", "Misc"]
+
+# Optional: Enable AI deep inspection for smart sub-categorization
+# When enabled, NoEntropy reads text file contents to suggest sub-folders (e.g., Documents/Invoices)
+# When disabled (default), NoEntropy only categorizes by file name into main folders (e.g., Documents/)
+# Deep inspection provides better organization but is slower for large file collections
+# Set to true if you want more detailed organization, false for faster processing
+# deep_inspect = false

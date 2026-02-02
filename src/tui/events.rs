@@ -27,7 +27,6 @@ pub async fn run_app(
     target_path: Option<PathBuf>,
     recursive: bool,
     dry_run: bool,
-    offline: bool,
 ) -> Result<()> {
     // Validate and normalize the target path
     let target_path = match target_path {
@@ -43,13 +42,7 @@ pub async fn run_app(
     let mut terminal = Terminal::new(backend)?;
 
     // Create app
-    let mut app = App::new(
-        config.clone(),
-        target_path.clone(),
-        recursive,
-        dry_run,
-        offline,
-    );
+    let mut app = App::new(config.clone(), target_path.clone(), recursive, dry_run);
 
     // Scan files initially
     app.scan_files();
@@ -159,16 +152,13 @@ async fn run_event_loop(
                             app.target_path.clone(),
                             app.recursive,
                             app.dry_run,
-                            app.offline,
                         );
                         app.scan_files();
                     }
                 }
                 KeyCode::Char('t') => {
-                    // Toggle offline mode
-                    app.offline = !app.offline;
-                    let mode_text = if app.offline { "ON" } else { "OFF" };
-                    app.status_message = format!("Offline mode: {}", mode_text);
+                    // Toggle online/offline mode
+                    toggle_online_mode(app, config).await;
                 }
                 _ => {}
             }
@@ -197,7 +187,7 @@ async fn fetch_organization_plan(
     }
 
     // Online AI categorization
-    let client = GeminiClient::new(&config.api_key, &config.categories);
+    let client = GeminiClient::new_silent(&config.api_key, &config.categories);
 
     // Check connectivity first
     client.check_connectivity().await?;
@@ -276,4 +266,47 @@ fn execute_organization(app: &mut App, undo_log: &mut UndoLog) {
         }
     }
     app.plan = Some(plan);
+}
+
+async fn toggle_online_mode(app: &mut App, config: &Config) {
+    if app.online_requested {
+        // Currently online (or trying to be), switch to offline
+        app.online_requested = false;
+        app.online_available = false;
+        app.offline = true;
+        app.status_message = "Switched to offline mode".to_string();
+
+        // Save preference to config
+        let mut updated_config = config.clone();
+        if let Err(e) = updated_config.set_prefer_online_silent(false) {
+            app.status_message = format!("Offline mode (failed to save: {})", e);
+        }
+    } else {
+        // Currently offline, try to switch to online
+        app.status_message = "Checking online availability...".to_string();
+
+        if config.api_key.is_empty() {
+            app.status_message = "Cannot go online: API key not configured".to_string();
+            return;
+        }
+
+        let client = GeminiClient::new_silent(&config.api_key, &config.categories);
+        match client.check_connectivity().await {
+            Ok(()) => {
+                app.online_requested = true;
+                app.online_available = true;
+                app.offline = false;
+                app.status_message = "Online mode enabled ✓".to_string();
+
+                // Save preference to config
+                let mut updated_config = config.clone();
+                if let Err(e) = updated_config.set_prefer_online_silent(true) {
+                    app.status_message = format!("Online mode ✓ (failed to save pref: {})", e);
+                }
+            }
+            Err(e) => {
+                app.status_message = format!("Online unavailable: {}", e);
+            }
+        }
+    }
 }

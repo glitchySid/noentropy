@@ -37,6 +37,10 @@ pub struct App {
     pub dry_run: bool,
     pub offline: bool,
 
+    // Online mode state
+    pub online_requested: bool,
+    pub online_available: bool,
+
     // File data
     pub batch: Option<FileBatch>,
     pub plan: Option<OrganizationPlan>,
@@ -60,13 +64,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(
-        config: Config,
-        target_path: PathBuf,
-        recursive: bool,
-        dry_run: bool,
-        offline: bool,
-    ) -> Self {
+    pub fn new(config: Config, target_path: PathBuf, recursive: bool, dry_run: bool) -> Self {
+        // Initialize offline-first based on config preference
+        let online_requested = config.prefer_online;
+
         Self {
             state: AppState::Scanning,
             tab: Tab::Files,
@@ -74,7 +75,9 @@ impl App {
             target_path,
             recursive,
             dry_run,
-            offline,
+            offline: !online_requested,
+            online_requested,
+            online_available: false,
             batch: None,
             plan: None,
             file_list_state: 0,

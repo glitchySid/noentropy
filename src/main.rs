@@ -30,14 +30,7 @@ async fn main() -> Result<()> {
         None => {
             // Default: Launch TUI
             let config = get_or_prompt_config()?;
-            run_app(
-                config,
-                args.path,
-                args.recursive,
-                args.dry_run,
-                args.offline,
-            )
-            .await?;
+            run_app(config, args.path, args.recursive, args.dry_run).await?;
         }
     }
     Ok(())

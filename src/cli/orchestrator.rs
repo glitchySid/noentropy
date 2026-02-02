@@ -49,20 +49,44 @@ async fn resolve_target_path(args: &Args, config: &Config) -> Option<std::path::
 }
 
 async fn determine_offline_mode(args: &Args, config: &Config) -> Option<bool> {
-    let is_offline = match &args.command {
-        Some(Command::Organize { offline, .. }) => *offline,
-        _ => false,
+    // Check CLI flags first
+    let cli_online = match &args.command {
+        Some(Command::Organize { online, .. }) => *online,
+        _ => args.online,
     };
 
-    if is_offline {
+    let cli_offline = match &args.command {
+        Some(Command::Organize { offline, .. }) => *offline,
+        _ => args.offline,
+    };
+
+    // Determine mode preference
+    let prefer_online = config.should_use_online_mode(cli_online, cli_offline);
+
+    if cli_offline {
         println!("{}", "Using offline mode (--offline flag).".cyan());
         return Some(true);
     }
 
+    // Offline-first: default to offline unless online explicitly requested
+    if !prefer_online {
+        println!(
+            "{}",
+            "Using offline mode (offline-first). Use --online to enable AI categorization.".cyan()
+        );
+        return Some(true);
+    }
+
+    // Online mode requested - validate API connectivity
+    println!("{}", "Checking online mode availability...".cyan());
     let client = GeminiClient::new(&config.api_key, &config.categories);
     match client.check_connectivity().await {
-        Ok(()) => Some(false),
+        Ok(()) => {
+            println!("{}", "Online mode enabled.".green());
+            Some(false)
+        }
         Err(e) => {
+            println!("{}", format!("Online mode unavailable: {}", e).yellow());
             if Prompter::prompt_offline_mode(&e.to_string()) {
                 Some(true)
             } else {

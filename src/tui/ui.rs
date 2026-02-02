@@ -290,8 +290,10 @@ fn draw_progress_tab(frame: &mut Frame, app: &App, area: Rect) {
             Span::styled("Mode: ", Style::default().fg(Color::Cyan)),
             Span::raw(if app.offline {
                 "Offline"
-            } else {
+            } else if app.online_available {
                 "Online (AI)"
+            } else {
+                "Online (Unavailable)"
             }),
         ]),
     ];
@@ -316,16 +318,13 @@ fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_offline_toggle(frame: &mut Frame, app: &App, area: Rect) {
-    let toggle_text = if app.offline {
-        "Offline Mode: ON"
+    // Determine display text and style based on mode and availability
+    let (toggle_text, toggle_style) = if app.offline {
+        ("Offline Mode", Style::default().fg(Color::Green))
+    } else if app.online_available {
+        ("Online Mode ✓", Style::default().fg(Color::Green))
     } else {
-        "Offline Mode: OFF"
-    };
-
-    let toggle_style = if app.offline {
-        Style::default().fg(Color::Green)
-    } else {
-        Style::default().fg(Color::Red)
+        ("Online Mode ✗", Style::default().fg(Color::Yellow))
     };
 
     let toggle = Paragraph::new(toggle_text)
@@ -346,11 +345,11 @@ fn draw_offline_toggle(frame: &mut Frame, app: &App, area: Rect) {
 fn draw_help_bar(frame: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.state {
         AppState::FileList => {
-            "[o] Organize  [t] Toggle offline  [Tab] Switch view  [j/k] Navigate  [q] Quit"
+            "[o] Organize  [t] Toggle mode  [Tab] Switch view  [j/k] Navigate  [q] Quit"
         }
         AppState::Fetching => "Fetching... Please wait",
         AppState::PlanReview => {
-            "[c] Confirm  [t] Toggle offline  [Tab] Switch view  [j/k] Navigate  [q] Quit"
+            "[c] Confirm  [t] Toggle mode  [Tab] Switch view  [j/k] Navigate  [q] Quit"
         }
         AppState::Moving => "Moving files... Please wait",
         AppState::Done => "[q] Quit  [r] Restart",

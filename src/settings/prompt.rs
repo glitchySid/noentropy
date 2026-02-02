@@ -38,12 +38,23 @@ impl Prompter {
     }
 
     pub fn prompt_api_key() -> error::Result<String> {
+        Self::prompt_api_key_internal(false)
+    }
+
+    pub fn prompt_api_key_optional() -> error::Result<String> {
+        Self::prompt_api_key_internal(true)
+    }
+
+    fn prompt_api_key_internal(allow_skip: bool) -> error::Result<String> {
         println!();
         println!(
             "Get your API key at: {}",
             "https://ai.google.dev/".cyan().underline()
         );
         println!("Enter your API Key (starts with 'AIza'):");
+        if allow_skip {
+            println!("Or press Enter to skip and use offline mode only.");
+        }
 
         let mut attempts = 0;
 
@@ -56,6 +67,11 @@ impl Prompter {
 
             let key = input.trim();
 
+            // Allow empty input if skipping is allowed (offline mode)
+            if allow_skip && key.is_empty() {
+                return Ok(String::new());
+            }
+
             if Self::validate_api_key(key) {
                 return Ok(key.to_string());
             }
@@ -65,6 +81,12 @@ impl Prompter {
                 "Invalid API key format. Must start with 'AIza' and be around 39 characters.",
                 attempts,
             );
+        }
+
+        if allow_skip {
+            // After max retries, allow proceeding without API key
+            println!("Proceeding without API key. You can use offline mode only.");
+            return Ok(String::new());
         }
 
         Err("Max retries exceeded. Please run again with a valid API key.".into())

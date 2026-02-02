@@ -24,6 +24,7 @@ pub struct GeminiClient {
     #[allow(dead_code)]
     timeout: Duration,
     categories: Vec<String>,
+    silent: bool,
 }
 
 impl GeminiClient {
@@ -66,6 +67,15 @@ impl GeminiClient {
     }
 
     pub fn with_model(api_key: String, model: String, categories: Vec<String>) -> Self {
+        Self::with_model_silent(api_key, model, categories, false)
+    }
+
+    pub fn with_model_silent(
+        api_key: String,
+        model: String,
+        categories: Vec<String>,
+        silent: bool,
+    ) -> Self {
         let timeout = Duration::from_secs(DEFAULT_TIMEOUT_SECS);
         let client = Self::build_client(timeout);
         let base_url = Self::build_base_url(&model);
@@ -77,7 +87,21 @@ impl GeminiClient {
             model,
             timeout,
             categories,
+            silent,
         }
+    }
+
+    pub fn new_silent(api_key: &str, categories: &[String]) -> Self {
+        Self::with_model_silent(
+            api_key.to_string(),
+            DEFAULT_MODEL.to_string(),
+            categories.to_vec(),
+            true,
+        )
+    }
+
+    pub fn set_silent(&mut self, silent: bool) {
+        self.silent = silent;
     }
 
     fn build_client(timeout: Duration) -> Client {
@@ -160,10 +184,12 @@ impl GeminiClient {
         let total_files = filenames.len();
         let total_batches = total_files.div_ceil(BATCH_SIZE);
 
-        println!(
-            "Processing {} files in {} batches...",
-            total_files, total_batches
-        );
+        if !self.silent {
+            println!(
+                "Processing {} files in {} batches...",
+                total_files, total_batches
+            );
+        }
 
         let mut all_files = Vec::with_capacity(total_files);
 
@@ -172,12 +198,14 @@ impl GeminiClient {
             let end = std::cmp::min(start + BATCH_SIZE, total_files);
             let batch = filenames[start..end].to_vec();
 
-            println!(
-                "Processing batch {}/{} ({} files)...",
-                batch_index + 1,
-                total_batches,
-                batch.len()
-            );
+            if !self.silent {
+                println!(
+                    "Processing batch {}/{} ({} files)...",
+                    batch_index + 1,
+                    total_batches,
+                    batch.len()
+                );
+            }
 
             let plan = self
                 .organize_files_with_cache(batch, cache.as_deref_mut(), base_path)
@@ -272,23 +300,27 @@ impl GeminiClient {
     }
 
     fn print_retry_message(&self, error: &GeminiError, delay: Duration, attempt: u32) {
-        println!(
-            "API Error: {}. Retrying in {} seconds (attempt {}/{})",
-            error,
-            delay.as_secs(),
-            attempt,
-            MAX_RETRIES
-        );
+        if !self.silent {
+            println!(
+                "API Error: {}. Retrying in {} seconds (attempt {}/{})",
+                error,
+                delay.as_secs(),
+                attempt,
+                MAX_RETRIES
+            );
+        }
     }
 
     fn print_network_retry(&self, error: &reqwest::Error, delay: Duration, attempt: u32) {
-        println!(
-            "Network error: {}. Retrying in {} seconds (attempt {}/{})",
-            error,
-            delay.as_secs(),
-            attempt,
-            MAX_RETRIES
-        );
+        if !self.silent {
+            println!(
+                "Network error: {}. Retrying in {} seconds (attempt {}/{})",
+                error,
+                delay.as_secs(),
+                attempt,
+                MAX_RETRIES
+            );
+        }
     }
 
     pub async fn get_ai_sub_category(
@@ -304,10 +336,12 @@ impl GeminiClient {
         let res = match self.client.post(&url).json(&request_body).send().await {
             Ok(res) => res,
             Err(e) => {
-                eprintln!(
-                    "Warning: Failed to get sub-category for {}: {}",
-                    filename, e
-                );
+                if !self.silent {
+                    eprintln!(
+                        "Warning: Failed to get sub-category for {}: {}",
+                        filename, e
+                    );
+                }
                 return "General".to_string();
             }
         };
@@ -323,18 +357,22 @@ impl GeminiClient {
 
     async fn parse_subcategory_response(&self, res: reqwest::Response, filename: &str) -> String {
         if !res.status().is_success() {
-            eprintln!(
-                "Warning: API returned error for {}: {}",
-                filename,
-                res.status()
-            );
+            if !self.silent {
+                eprintln!(
+                    "Warning: API returned error for {}: {}",
+                    filename,
+                    res.status()
+                );
+            }
             return "General".to_string();
         }
 
         let gemini_response: GeminiResponse = match res.json().await {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("Warning: Failed to parse response for {}: {}", filename, e);
+                if !self.silent {
+                    eprintln!("Warning: Failed to parse response for {}: {}", filename, e);
+                }
                 return "General".to_string();
             }
         };

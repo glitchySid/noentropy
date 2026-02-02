@@ -28,9 +28,21 @@ pub struct Config {
     pub categories: Vec<String>,
     #[serde(default = "default_deep_inspect")]
     pub deep_inspect: bool,
+    #[serde(default = "default_offline_first")]
+    pub offline_first: bool,
+    #[serde(default = "default_prefer_online")]
+    pub prefer_online: bool,
 }
 
 fn default_deep_inspect() -> bool {
+    false
+}
+
+fn default_offline_first() -> bool {
+    true
+}
+
+fn default_prefer_online() -> bool {
     false
 }
 
@@ -45,25 +57,31 @@ impl Config {
         let content = std::fs::read_to_string(&config_path)?;
         let config: Config = toml::from_str(&content)?;
 
-        if config.api_key.is_empty() {
-            return Err("API key not found in config file".into());
-        }
-
         Ok(config)
     }
 
     pub fn save(&self) -> Result<()> {
+        self.save_internal(false)
+    }
+
+    pub fn save_silent(&self) -> Result<()> {
+        self.save_internal(true)
+    }
+
+    fn save_internal(&self, silent: bool) -> Result<()> {
         let config_path = Self::get_config_path()?;
 
         let toml_string = toml::to_string_pretty(self)?;
 
         std::fs::write(&config_path, toml_string)?;
 
-        println!(
-            "{} Configuration saved to {}",
-            "✓".green(),
-            config_path.display().to_string().yellow()
-        );
+        if !silent {
+            println!(
+                "{} Configuration saved to {}",
+                "✓".green(),
+                config_path.display().to_string().yellow()
+            );
+        }
 
         Ok(())
     }
@@ -170,12 +188,16 @@ pub fn get_or_prompt_config() -> Result<Config> {
     let mut config = Config::load().unwrap_or_default();
     let mut needs_save = false;
 
-    // Check API key
+    // Check API key - now optional, user can skip and use offline mode
     if config.api_key.is_empty() {
         println!();
         println!("{}", "🔑 NoEntropy Configuration".bold().cyan());
         println!("{}", "─────────────────────────────".cyan());
-        config.api_key = Prompter::prompt_api_key()?;
+        println!();
+        println!("NoEntropy works in {} by default.", "offline mode".cyan());
+        println!("You can organize files using extension-based categorization without an API key.");
+        println!();
+        config.api_key = Prompter::prompt_api_key_optional()?;
         needs_save = true;
     }
 
@@ -202,6 +224,8 @@ impl Default for Config {
             download_folder: PathBuf::new(),
             categories: default_categories(),
             deep_inspect: default_deep_inspect(),
+            offline_first: default_offline_first(),
+            prefer_online: default_prefer_online(),
         }
     }
 }
@@ -215,5 +239,28 @@ impl Config {
             return true;
         }
         self.deep_inspect
+    }
+
+    pub fn should_use_online_mode(&self, cli_online: bool, cli_offline: bool) -> bool {
+        // CLI flags take highest priority
+        if cli_offline {
+            return false;
+        }
+        if cli_online {
+            return true;
+        }
+
+        // Then check user's preference from config
+        self.prefer_online
+    }
+
+    pub fn set_prefer_online(&mut self, prefer_online: bool) -> Result<()> {
+        self.prefer_online = prefer_online;
+        self.save()
+    }
+
+    pub fn set_prefer_online_silent(&mut self, prefer_online: bool) -> Result<()> {
+        self.prefer_online = prefer_online;
+        self.save_silent()
     }
 }

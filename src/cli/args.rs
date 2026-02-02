@@ -15,13 +15,17 @@ pub struct Args {
     #[arg(long, short = 'd', global = true)]
     pub dry_run: bool,
 
+    /// Force offline mode even if online is preferred
+    #[arg(long, global = true)]
+    pub offline: bool,
+
     /// Recursively search files in subdirectory
     #[arg(long, short = 'r', global = true)]
     pub recursive: bool,
 
-    /// Use offline mode (extension-based categorization)
+    /// Use online mode (AI categorization)
     #[arg(long, short = 'o', global = true)]
-    pub offline: bool,
+    pub online: bool,
 
     /// Skip AI deep inspection for sub-categorization (faster)
     #[arg(long, global = true)]
@@ -34,14 +38,16 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Organize downloads using AI categorization (CLI mode)
+    /// Organize downloads (offline-first by default)
     #[command(name = "organize")]
     Organize {
         #[arg(long, help = "Preview changes without moving files")]
         dry_run: bool,
         #[arg(long, default_value_t = 5, help = "Maximum concurrent API requests")]
         max_concurrent: usize,
-        #[arg(long, help = "Use offline mode (extension-based categorization)")]
+        #[arg(long, help = "Use online mode (AI categorization)")]
+        online: bool,
+        #[arg(long, help = "Force offline mode (extension-based categorization)")]
         offline: bool,
         #[arg(long, help = "Recursively search files in subdirectory")]
         recursive: bool,

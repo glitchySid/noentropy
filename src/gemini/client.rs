@@ -9,8 +9,8 @@ use serde_json::json;
 use std::path::Path;
 use std::time::Duration;
 
-const DEFAULT_MODEL: &str = "gemini-3-flash-preview";
-const DEFAULT_TIMEOUT_SECS: u64 = 120;
+const DEFAULT_MODEL: &str = "gemini-3.5-flash";
+const DEFAULT_TIMEOUT_SECS: u64 = 10;
 const MAX_RETRIES: u32 = 3;
 const BATCH_SIZE: usize = 50;
 
@@ -40,7 +40,14 @@ impl GeminiClient {
         info!("Checking Gemini API connectivity");
         debug!("Connectivity check URL: {}", url);
 
-        match self.client.post(&url).json(&request_body).send().await {
+        match self
+            .client
+            .post(&url)
+            .json(&request_body)
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await
+        {
             Ok(response) => {
                 if response.status().is_success() {
                     info!("Gemini API connectivity check successful");

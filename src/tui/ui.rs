@@ -91,14 +91,12 @@ fn draw_duplicate_result(frame: &mut Frame, app: &App, area: Rect) {
         Some(summary) => {
             if summary.duplicate_count() > 0 {
                 vec![
-                    Line::from(vec![
-                        Span::styled(
-                            "Duplicate Removal Complete!",
-                            Style::default()
-                                .fg(Color::Green)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
+                    Line::from(vec![Span::styled(
+                        "Duplicate Removal Complete!",
+                        Style::default()
+                            .fg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    )]),
                     Line::from(""),
                     Line::from(vec![
                         Span::styled("Files deleted: ", Style::default().fg(Color::Cyan)),
@@ -119,14 +117,12 @@ fn draw_duplicate_result(frame: &mut Frame, app: &App, area: Rect) {
                 ]
             } else {
                 vec![
-                    Line::from(vec![
-                        Span::styled(
-                            "No Duplicates Found",
-                            Style::default()
-                                .fg(Color::Yellow)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
+                    Line::from(vec![Span::styled(
+                        "No Duplicates Found",
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    )]),
                     Line::from(""),
                     Line::from("Press [Esc] or [r] to return to files"),
                 ]
@@ -378,7 +374,10 @@ fn draw_progress_tab(frame: &mut Frame, app: &App, area: Rect) {
 fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     let (status_text, status_style) = match &app.state {
         AppState::Error(_) => (app.status_message.clone(), Style::default().fg(Color::Red)),
-        AppState::Done => (app.status_message.clone(), Style::default().fg(Color::Green)),
+        AppState::Done => (
+            app.status_message.clone(),
+            Style::default().fg(Color::Green),
+        ),
         AppState::DuplicateResult(summary) => {
             let msg = if summary.duplicate_count() > 0 {
                 format!(
@@ -391,7 +390,10 @@ fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
             };
             (msg, Style::default().fg(Color::Green))
         }
-        _ => (app.status_message.clone(), Style::default().fg(Color::Yellow)),
+        _ => (
+            app.status_message.clone(),
+            Style::default().fg(Color::Yellow),
+        ),
     };
 
     let status = Paragraph::new(status_text)

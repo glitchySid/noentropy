@@ -5,3 +5,5 @@ apikey.txt
 .HACKATHON_REVIEW.md
 Agents.md
 .opencode
+.agents
+skills-lock.json

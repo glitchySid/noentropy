@@ -27,6 +27,7 @@ fn create_test_organize_command(dry_run: bool, max_concurrent: usize) -> Command
         dry_run,
         max_concurrent,
         offline: false,
+        online: false,
         recursive: false,
         path: None,
         skip_deep_inspect: true,
@@ -48,6 +49,8 @@ fn create_test_config(api_key: &str) -> Config {
             "Archives".to_string(),
         ],
         deep_inspect: false,
+        offline_first: false,
+        prefer_online: false,
     }
 }
 
@@ -85,6 +88,7 @@ fn test_command_organize_creation() {
             dry_run,
             max_concurrent,
             offline,
+            online: _,
             recursive,
             skip_deep_inspect,
             no_skip_deep_inspect: _,
@@ -118,6 +122,7 @@ fn test_command_organize_all_flags() {
         max_concurrent: 10,
         recursive: true,
         offline: true,
+        online: false,
         path: Some(PathBuf::from("/test/path")),
         skip_deep_inspect: true,
         no_skip_deep_inspect: false,
@@ -129,6 +134,7 @@ fn test_command_organize_all_flags() {
             max_concurrent: _,
             recursive,
             offline: _,
+            online: _,
             skip_deep_inspect,
             no_skip_deep_inspect: _,
             path,
@@ -161,6 +167,8 @@ fn test_config_with_custom_categories() {
         download_folder: PathBuf::from("/test"),
         categories: vec!["Custom1".to_string(), "Custom2".to_string()],
         deep_inspect: false,
+        offline_first: false,
+        prefer_online: false,
     };
 
     assert_eq!(config.categories.len(), 2);
@@ -174,6 +182,8 @@ fn test_config_empty_categories() {
         download_folder: PathBuf::new(),
         categories: vec![],
         deep_inspect: false,
+        offline_first: false,
+        prefer_online: false,
     };
 
     assert!(config.categories.is_empty());

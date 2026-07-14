@@ -1,5 +1,6 @@
 use crate::cli::path_utils::validate_and_normalize_path;
 use crate::error::Result;
+use crate::files::duplicate::execute_delete_silent;
 use crate::files::{execute_move_silent, is_text_file, read_file_sample};
 use crate::gemini::GeminiClient;
 use crate::models::OrganizationPlan;
@@ -161,6 +162,23 @@ async fn run_event_loop(
                 KeyCode::Char('t') => {
                     // Toggle online/offline mode (probe runs on a background task)
                     online_check = toggle_online_mode(app, config);
+                }
+                KeyCode::Char('d') => {
+                    if matches!(app.state, AppState::FileList) {
+                        app.start_duplicate_scan();
+                        terminal.draw(|frame| draw(frame, app))?;
+
+                        match execute_delete_silent() {
+                            Ok(summary) => app.set_duplicate_result(summary),
+                            Err(e) => app.set_error(e.to_string()),
+                        }
+                    }
+                }
+                KeyCode::Esc => {
+                    if matches!(app.state, AppState::DuplicateResult(_)) {
+                        app.state = AppState::FileList;
+                        app.status_message = format!("Found {} files", app.total_files);
+                    }
                 }
                 _ => {}
             }

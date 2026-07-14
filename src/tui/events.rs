@@ -87,6 +87,8 @@ async fn run_event_loop(
     cache: &mut Cache,
     undo_log: &mut UndoLog,
 ) -> Result<()> {
+    let mut online_check: Option<tokio::task::JoinHandle<std::result::Result<(), String>>> = None;
+
     loop {
         terminal.draw(|frame| draw(frame, app))?;
 
@@ -157,10 +159,36 @@ async fn run_event_loop(
                     }
                 }
                 KeyCode::Char('t') => {
-                    // Toggle online/offline mode
-                    toggle_online_mode(app, config).await;
+                    // Toggle online/offline mode (probe runs on a background task)
+                    online_check = toggle_online_mode(app, config);
                 }
                 _ => {}
+            }
+        }
+
+        // Poll the background online-connectivity probe (non-blocking)
+        if let Some(handle) = online_check.take() {
+            if handle.is_finished() {
+                match handle.await {
+                    Ok(Ok(())) => {
+                        app.online_requested = true;
+                        app.online_available = true;
+                        app.offline = false;
+                        app.status_message = "Online mode enabled ✓".to_string();
+                        if let Err(e) = app.config.clone().set_prefer_online_silent(true) {
+                            app.status_message =
+                                format!("Online mode ✓ (failed to save pref: {})", e);
+                        }
+                    }
+                    Ok(Err(e)) => {
+                        app.status_message = format!("Online unavailable: {}", e);
+                    }
+                    Err(_) => {
+                        app.status_message = "Online check failed".to_string();
+                    }
+                }
+            } else {
+                online_check = Some(handle);
             }
         }
 
@@ -268,7 +296,10 @@ fn execute_organization(app: &mut App, undo_log: &mut UndoLog) {
     app.plan = Some(plan);
 }
 
-async fn toggle_online_mode(app: &mut App, config: &Config) {
+fn toggle_online_mode(
+    app: &mut App,
+    config: &Config,
+) -> Option<tokio::task::JoinHandle<std::result::Result<(), String>>> {
     if app.online_requested {
         // Currently online (or trying to be), switch to offline
         app.online_requested = false;
@@ -277,36 +308,22 @@ async fn toggle_online_mode(app: &mut App, config: &Config) {
         app.status_message = "Switched to offline mode".to_string();
 
         // Save preference to config
-        let mut updated_config = config.clone();
-        if let Err(e) = updated_config.set_prefer_online_silent(false) {
+        if let Err(e) = config.clone().set_prefer_online_silent(false) {
             app.status_message = format!("Offline mode (failed to save: {})", e);
         }
+        None
+    } else if config.api_key.is_empty() {
+        app.status_message = "Cannot go online: API key not configured".to_string();
+        None
     } else {
-        // Currently offline, try to switch to online
+        // Currently offline, try to switch to online on a background task
         app.status_message = "Checking online availability...".to_string();
-
-        if config.api_key.is_empty() {
-            app.status_message = "Cannot go online: API key not configured".to_string();
-            return;
-        }
-
-        let client = GeminiClient::new_silent(&config.api_key, &config.categories);
-        match client.check_connectivity().await {
-            Ok(()) => {
-                app.online_requested = true;
-                app.online_available = true;
-                app.offline = false;
-                app.status_message = "Online mode enabled ✓".to_string();
-
-                // Save preference to config
-                let mut updated_config = config.clone();
-                if let Err(e) = updated_config.set_prefer_online_silent(true) {
-                    app.status_message = format!("Online mode ✓ (failed to save pref: {})", e);
-                }
-            }
-            Err(e) => {
-                app.status_message = format!("Online unavailable: {}", e);
-            }
-        }
+        let (api_key, categories) = (config.api_key.clone(), config.categories.clone());
+        Some(tokio::spawn(async move {
+            GeminiClient::new_silent(&api_key, &categories)
+                .check_connectivity()
+                .await
+                .map_err(|e| e.to_string())
+        }))
     }
 }

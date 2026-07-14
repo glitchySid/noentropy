@@ -1,4 +1,5 @@
 use crate::files::FileBatch;
+use crate::files::duplicate::DuplicateSummary;
 use crate::models::{FileCategory, OrganizationPlan};
 use crate::settings::Config;
 use std::path::PathBuf;
@@ -17,6 +18,10 @@ pub enum AppState {
     Moving,
     /// Organization complete
     Done,
+    /// Scanning for duplicates
+    DuplicateScanning,
+    /// Duplicate removal result
+    DuplicateResult(DuplicateSummary),
     /// Error state
     Error(String),
 }
@@ -59,6 +64,9 @@ pub struct App {
     // Status message
     pub status_message: String,
 
+    // Duplicate removal
+    pub duplicate_summary: Option<DuplicateSummary>,
+
     // Should quit
     pub should_quit: bool,
 }
@@ -88,6 +96,7 @@ impl App {
             moved_count: 0,
             error_count: 0,
             status_message: String::from("Scanning files..."),
+            duplicate_summary: None,
             should_quit: false,
         }
     }
@@ -204,5 +213,16 @@ impl App {
         self.plan
             .as_ref()
             .and_then(|plan| plan.files.get(self.plan_list_state))
+    }
+
+    pub fn start_duplicate_scan(&mut self) {
+        self.state = AppState::DuplicateScanning;
+        self.status_message = "Scanning for duplicates...".to_string();
+    }
+
+    pub fn set_duplicate_result(&mut self, summary: DuplicateSummary) {
+        self.state = AppState::DuplicateResult(summary.clone());
+        self.duplicate_summary = Some(summary);
+        self.status_message = "Duplicate removal complete".to_string();
     }
 }

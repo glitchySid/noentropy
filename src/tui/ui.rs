@@ -63,11 +63,82 @@ fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_main_content(frame: &mut Frame, app: &App, area: Rect) {
-    match app.tab {
-        Tab::Files => draw_files_tab(frame, app, area),
-        Tab::Plan => draw_plan_tab(frame, app, area),
-        Tab::Progress => draw_progress_tab(frame, app, area),
+    match app.state {
+        AppState::DuplicateScanning => draw_duplicate_scanning(frame, area),
+        AppState::DuplicateResult(_) => draw_duplicate_result(frame, app, area),
+        _ => match app.tab {
+            Tab::Files => draw_files_tab(frame, app, area),
+            Tab::Plan => draw_plan_tab(frame, app, area),
+            Tab::Progress => draw_progress_tab(frame, app, area),
+        },
     }
+}
+
+fn draw_duplicate_scanning(frame: &mut Frame, area: Rect) {
+    let scanning = Paragraph::new("Scanning for duplicate files...")
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::SLOW_BLINK),
+        )
+        .block(Block::default().borders(Borders::ALL).title("Duplicates"))
+        .wrap(Wrap { trim: true });
+    frame.render_widget(scanning, area);
+}
+
+fn draw_duplicate_result(frame: &mut Frame, app: &App, area: Rect) {
+    let content = match &app.duplicate_summary {
+        Some(summary) => {
+            if summary.duplicate_count() > 0 {
+                vec![
+                    Line::from(vec![
+                        Span::styled(
+                            "Duplicate Removal Complete!",
+                            Style::default()
+                                .fg(Color::Green)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled("Files deleted: ", Style::default().fg(Color::Cyan)),
+                        Span::styled(
+                            summary.duplicate_count().to_string(),
+                            Style::default().fg(Color::Green),
+                        ),
+                    ]),
+                    Line::from(vec![
+                        Span::styled("Space saved: ", Style::default().fg(Color::Cyan)),
+                        Span::styled(
+                            format_size(summary.total_size_saved()),
+                            Style::default().fg(Color::Green),
+                        ),
+                    ]),
+                    Line::from(""),
+                    Line::from("Press [Esc] or [r] to return to files"),
+                ]
+            } else {
+                vec![
+                    Line::from(vec![
+                        Span::styled(
+                            "No Duplicates Found",
+                            Style::default()
+                                .fg(Color::Yellow)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                    Line::from(""),
+                    Line::from("Press [Esc] or [r] to return to files"),
+                ]
+            }
+        }
+        None => vec![Line::from("No summary available")],
+    };
+
+    let result = Paragraph::new(content)
+        .block(Block::default().borders(Borders::ALL).title("Duplicates"))
+        .wrap(Wrap { trim: true });
+    frame.render_widget(result, area);
 }
 
 fn draw_files_tab(frame: &mut Frame, app: &App, area: Rect) {
@@ -305,13 +376,25 @@ fn draw_progress_tab(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
-    let status_style = match app.state {
-        AppState::Error(_) => Style::default().fg(Color::Red),
-        AppState::Done => Style::default().fg(Color::Green),
-        _ => Style::default().fg(Color::Yellow),
+    let (status_text, status_style) = match &app.state {
+        AppState::Error(_) => (app.status_message.clone(), Style::default().fg(Color::Red)),
+        AppState::Done => (app.status_message.clone(), Style::default().fg(Color::Green)),
+        AppState::DuplicateResult(summary) => {
+            let msg = if summary.duplicate_count() > 0 {
+                format!(
+                    "Duplicates: {} files deleted, {} saved",
+                    summary.duplicate_count(),
+                    format_size(summary.total_size_saved())
+                )
+            } else {
+                "No duplicates found".to_string()
+            };
+            (msg, Style::default().fg(Color::Green))
+        }
+        _ => (app.status_message.clone(), Style::default().fg(Color::Yellow)),
     };
 
-    let status = Paragraph::new(app.status_message.clone())
+    let status = Paragraph::new(status_text)
         .style(status_style)
         .block(Block::default().borders(Borders::ALL).title("Status"));
     frame.render_widget(status, area);
@@ -345,7 +428,7 @@ fn draw_offline_toggle(frame: &mut Frame, app: &App, area: Rect) {
 fn draw_help_bar(frame: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.state {
         AppState::FileList => {
-            "[o] Organize  [t] Toggle mode  [Tab] Switch view  [j/k] Navigate  [q] Quit"
+            "[o] Organize  [t] Toggle mode  [Tab] Switch view  [j/k] Navigate  [q] Quit  [d] Duplicates"
         }
         AppState::Fetching => "Fetching... Please wait",
         AppState::PlanReview => {
@@ -355,6 +438,8 @@ fn draw_help_bar(frame: &mut Frame, app: &App, area: Rect) {
         AppState::Done => "[q] Quit  [r] Restart",
         AppState::Error(_) => "[q] Quit  [r] Retry",
         AppState::Scanning => "Scanning files...",
+        AppState::DuplicateScanning => "Scanning for duplicates...",
+        AppState::DuplicateResult(_) => "[Esc] Return to files",
     };
 
     let help = Paragraph::new(help_text)

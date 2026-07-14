@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct DuplicateSummary {
     pub total_duplicates: u64,
     pub total_size_saved: u64,

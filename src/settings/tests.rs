@@ -10,6 +10,8 @@ fn test_config_serialization() {
         download_folder: PathBuf::from("/test/path"),
         categories: default_categories(),
         deep_inspect: false,
+        offline_first: false,
+        prefer_online: false,
     };
 
     let toml_str = toml::to_string_pretty(&config).unwrap();
@@ -89,6 +91,8 @@ fn test_config_empty_api_key_error() {
         download_folder: PathBuf::from("/test/path"),
         categories: default_categories(),
         deep_inspect: false,
+        offline_first: false,
+        prefer_online: false,
     };
 
     assert!(config.api_key.is_empty());

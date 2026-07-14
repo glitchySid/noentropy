@@ -125,7 +125,9 @@ pub fn execute_delete_duplicates<C: ConfirmationStrategy>(
     }
 }
 
-pub fn delete_duplicates_silent(path: &std::path::Path) -> Result<DuplicateSummary, DuplicateError> {
+pub fn delete_duplicates_silent(
+    path: &std::path::Path,
+) -> Result<DuplicateSummary, DuplicateError> {
     let detector = DuplicateDetector::new(path.to_path_buf());
     detector.delete_duplicates()
 }
